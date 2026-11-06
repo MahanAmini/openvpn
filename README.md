@@ -95,7 +95,7 @@ Because users are separated like this, creating, editing or deleting one user ne
 Run these two commands on the server (as a user with `sudo`):
 
 ```bash
-wget https://raw.githubusercontent.com/USERNAME/openvpn/main/install.sh -O install.sh
+wget https://raw.githubusercontent.com/mahanamini/openvpn/main/install.sh -O install.sh
 sudo bash install.sh
 ```
 
