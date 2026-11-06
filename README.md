@@ -1,13 +1,15 @@
+<div align="center">
+<h1>OpenVPN</h1>
+<h4>⚡GassLight</h4>
+</div>
 <p align="center">
-  <a href="README.fa.md"><img alt="Language: فارسی" src="https://img.shields.io/badge/Language-%D9%81%D8%A7%D8%B1%D8%B3%DB%8C-2ea44f?style=for-the-badge"></a>
+  <a href="README.fa.md"><img alt="Language: Persian" src="https://img.shields.io/badge/Language-Persian-2ea44f?style=for-the-badge"></a>
   <a href="README.md"><img alt="Language: English" src="https://img.shields.io/badge/Language-English-6d7cff?style=for-the-badge"></a>
 </p>
 
 <p align="center">English | <a href="README.fa.md">فارسی</a></p>
 
 ---
-
-# GassLight
 
 > **One command installs an OpenVPN server, a web admin panel and a user portal. Every VPN user gets their own port.**
 
