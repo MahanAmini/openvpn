@@ -82,7 +82,7 @@ GassLight یه سرور تازه‌ی Ubuntu یا Debian رو به یه سروی
 این دو دستور رو روی سرور بزن (با یوزری که `sudo` داره):
 
 ```bash
-wget https://raw.githubusercontent.com/USERNAME/openvpn/main/install.sh -O install.sh
+wget https://raw.githubusercontent.com/mahanamini/openvpn/main/install.sh -O install.sh
 sudo bash install.sh
 ```
 
