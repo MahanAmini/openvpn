@@ -46,7 +46,7 @@ GassLight turns a fresh Ubuntu/Debian server into a small VPN service you can ma
 - Automatic **ID and port** selection, with gaps left by deleted users filled first. Ports can also be typed manually and are checked live.
 - **Live monitoring**: server download/upload speed, CPU, RAM and swap, plus per-user online state, local VPN IP, last connection and usage.
 - **Backup and import** of all users, usage and certificates in a single zip file.
-- **Panel users**: several admins, each with their own username and password.
+- **Panel users**: several admins, each with their own  and password.
 - English interface by default with a one-click **Persian (فارسی)** switch, dark/light theme, desktop sidebar and mobile menu.
 
 ### 👤 For your users
@@ -103,7 +103,7 @@ Because users are separated like this, creating, editing or deleting one user ne
 Run these two commands on the server (as a user with `sudo`):
 
 ```bash
-wget https://raw.githubusercontent.com/USERNAME/openvpn/main/install.sh -O install.sh
+wget https://raw.githubusercontent.com/mahanamini/openvpn/main/install.sh -O install.sh
 sudo bash install.sh
 ```
 
@@ -365,7 +365,7 @@ openvpn/
 
 ## Copyright and license
 
-Copyright (c) 2026 [YOUR NAME]. All rights reserved by the author except as granted below.
+Copyright (c) 2026 Mahan Amini. All rights reserved by the author except as granted below.
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the following condition: the above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
