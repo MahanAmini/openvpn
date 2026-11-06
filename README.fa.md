@@ -344,14 +344,14 @@ openvpn/
 
 ## کپی‌رایت و مجوز
 
-Copyright (c) 2026 [YOUR NAME]. تمام حقوق برای نویسنده محفوظ است، مگر آنچه در ادامه واگذار شده است.
+Copyright (c) 2026 Mahan Amini. تمام حقوق برای نویسنده محفوظ است، مگر آنچه در ادامه واگذار شده است.
 
 (متن رسمی مجوز، به زبان انگلیسی، برای دقت حقوقی:)
 
 </div>
 
 ```
-Copyright (c) 2026 [YOUR NAME]
+Copyright (c) 2026 Mahan Amini
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the following condition: the above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
