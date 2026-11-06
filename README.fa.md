@@ -6,33 +6,33 @@
 
 ## 📋 فهرست مطالب
 
-* [قابلیت‌ها](#قابلیتها)
+* [✨ قابلیت‌ها](#-قابلیتها)
 
-* [طرز کار](#طرز-کار)
+* [🛠️ طرز کار](#️-طرز-کار)
 
-* [پیش‌نیازها](#پیشنیازها)
+* [🖥️ پیش‌نیازها](#️-پیشنیازها)
 
-* [نصب](#نصب)
+* [🚀 نصب](#-نصب)
 
-* [بعد از نصب](#بعد-از-نصب)
+* [🏁 بعد از نصب](#-بعد-از-نصب)
 
-* [پنل ادمین](#پنل-ادمین)
+* [🎛️ پنل ادمین](#️-پنل-ادمین)
 
-* [پورتال کاربران](#پورتال-کاربران)
+* [🌐 پورتال کاربران](#-پورتال-کاربران)
 
-* [دستور مدیریتی: `gasslight`](#دستور-مدیریتی-gasslight)
+* [💻 دستور مدیریتی: `gasslight`](#-دستور-مدیریتی-gasslight)
 
-* [پورت‌ها و فایروال](#پورتها-و-فایروال)
+* [🛡️ پورت‌ها و فایروال](#️-پورتها-و-فایروال)
 
-* [نکته‌های امنیتی و HTTPS](#نکتههای-امنیتی-و-https)
+* [🔒 نکته‌های امنیتی و HTTPS](#-نکتههای-امنیتی-و-https)
 
-* [آپدیت و حذف](#آپدیت-و-حذف)
+* [🔄 آپدیت و حذف](#-آپدیت-و-حذف)
 
-* [عیب‌یابی](#عیبیابی)
+* [❓ عیب‌یابی](#-عیبیابی)
 
-* [ساختار پروژه](#ساختار-پروژه)
+* [📂 ساختار پروژه](#-ساختار-پروژه)
 
-* [کپی‌رایت و مجوز](#کپیرايت-و-مجوز)
+* [📄 کپی‌رایت و مجوز](#-کپیرايت-و-مجوز)
 
 ## ✨ قابلیت‌ها
 
@@ -71,7 +71,6 @@
   admin   ──TCP 8088──►  GassLight panel (Flask, root)  ◄── 127.0.0.1 internal API ──┐     │
   users   ──TCP 8089──►  user portal (separate process, user "nobody") ───────────────┘     │
                      └─────────────────────────────────────────────────────────────────────┘
-
 
 ```
 
@@ -113,7 +112,6 @@
 wget https://raw.githubusercontent.com/USERNAME/openvpn/main/install.sh -O install.sh
 sudo bash install.sh
 
-
 ```
 
 > \[!WARNING\] اول دانلود کن، بعد اجرا کن. از `curl ... | bash` **استفاده نکن**: نصب هسته‌ی OpenVPN چند سؤال می‌پرسه (IP سرور، پروتکل، پورت، DNS، اسم کلاینت اول) و ترمینال واقعی لازم داره. برای قبول پیش‌فرض‌ها Enter بزن.
@@ -148,7 +146,6 @@ sudo bash install.sh
 ```
 sudo bash install.sh --panel-port 9443 --portal-port 9444
 
-
 ```
 
 متغیرهای محیطی هم با همین معنی کار می‌کنن: `PANEL_PORT`، `PORTAL_PORT`، `PANEL_HOST`، `GASSLIGHT_REPO`، `GASSLIGHT_REF`.
@@ -162,7 +159,6 @@ sudo bash install.sh --panel-port 9443 --portal-port 9444
  Username  :  gasslight
  Password  :  <16 random characters>
  Portal    :  http://YOUR_SERVER_IP:8089
-
 
 ```
 
@@ -314,13 +310,11 @@ sudo bash install.sh --panel-port 9443 --portal-port 9444
   ```
   sudo systemctl edit ovpn-panel
   
-  
   ```
 
   ```
   [Service]
   Environment=PORTAL_BASE_URL=https://vpn.example.com
-  
   
   ```
 
@@ -329,13 +323,11 @@ sudo bash install.sh --panel-port 9443 --portal-port 9444
   ```
   sudo systemctl edit gasslight-portal
   
-  
   ```
 
   ```
   [Service]
   Environment=TRUST_PROXY=1
-  
   
   ```
 
@@ -354,7 +346,6 @@ sudo bash install.sh --panel-port 9443 --portal-port 9444
 ```
 sudo gasslight update
 
-
 ```
 
 *(یا دوباره `sudo bash install.sh` رو اجرا کن)*. اولین اجرا بعد از آپدیت از نسخه‌ی قدیمی، به instanceهای کاربرهای موجود management socket اضافه می‌کنه و هر کدوم رو یک بار ری‌استارت می‌کنه؛ کلاینت‌ها در عرض چند ثانیه دوباره وصل می‌شن.
@@ -366,7 +357,6 @@ sudo gasslight update
 ```
 sudo gasslight uninstall           # داده‌های پنل می‌مونن
 sudo gasslight uninstall --purge   # داده‌های پنل هم پاک می‌شن
-
 
 ```
 
@@ -392,7 +382,6 @@ openvpn/
 ├── panel/panel.py          # پنل ادمین (Flask، تک‌فایل)
 └── portal/portal.py        # پورتال کاربران (Flask، تک‌فایل)
 
-
 ```
 
 **روی سرور بعد از نصب:**
@@ -417,7 +406,6 @@ Copyright (c) 2026 [YOUR NAME]
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the following condition: the above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
 
 ```
 
