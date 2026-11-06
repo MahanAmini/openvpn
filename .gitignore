@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.vscode/
+*.log
+*.ovpn
+*.zip
+users.json
+auth.json
+portal.secret
+secret.key
+usage.json
