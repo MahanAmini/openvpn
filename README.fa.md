@@ -106,7 +106,7 @@ GassLight یه سرور تازه‌ی Ubuntu یا Debian رو به یه سروی
 این دو دستور رو روی سرور بزن (با یوزری که `sudo` داره):
 
 ```bash
-wget https://raw.githubusercontent.com/USERNAME/openvpn/main/install.sh -O install.sh
+wget https://raw.githubusercontent.com/mahanamini/openvpn/main/install.sh -O install.sh
 sudo bash install.sh
 ```
 
@@ -368,12 +368,12 @@ openvpn/
 
 ## کپی‌رایت و مجوز
 
-Copyright (c) 2026 [YOUR NAME]. تمام حقوق برای نویسنده محفوظ است، مگر آنچه در ادامه واگذار شده است.
+Copyright (c) 2026 Mahan Amini. تمام حقوق برای نویسنده محفوظ است، مگر آنچه در ادامه واگذار شده است.
 
 </div>
 
 ```text
-Copyright (c) 2026 [YOUR NAME]
+Copyright (c) 2026 Mahan Amini
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, subject to the following condition: the above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
 
@@ -383,7 +383,5 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 <div dir="rtl">
 
 مسئولیت استفاده از این نرم‌افزار مطابق قوانین کشور شما و قوانین سرویس‌دهنده‌ی سرور با خود شماست.
-
-*OpenVPN علامت تجاری ثبت‌شده‌ی OpenVPN Inc. است. GassLight یک پروژه‌ی مستقل است و وابسته به OpenVPN Inc. نیست و از سوی آن تأیید نشده است.*
 
 </div>
