@@ -401,7 +401,9 @@ sudo bash iran-tunnel-setup.sh --to Panel-IP --ports 1194:3000
 ### اجرا
 
 ```bash
-sudo bash exit-server-setup.sh --allow-ip IP_سرور_پنل [--port 1080] [--user NAME] [--pass PASSWORD]
+wget https://raw.githubusercontent.com/mahanamini/openvpn/main/scripts/exit-server-setup.sh -O exit-server-setup.sh
+sudo bash exit-server-setup.sh --allow-ip Panel-IP [--port 1080] [--user NAME] [--pass PASSWORD]
+port, user, password are optional
 ```
 
 ### گزینه‌ها
