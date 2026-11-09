@@ -126,6 +126,7 @@ ICONS = {
  "memory": '<rect x="2" y="6" width="20" height="12" rx="2"/><line x1="6" y1="10" x2="6" y2="14"/><line x1="10" y1="10" x2="10" y2="14"/><line x1="14" y1="10" x2="14" y2="14"/><line x1="18" y1="10" x2="18" y2="14"/>',
  "infinity": '<path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.356-8-5.096 0-5.096 8 0 8 5.223 0 7.26-8 12.356-8z"/>',
  "map": '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
+ "chevron": '<polyline points="6 9 12 15 18 9"/>',
 }
 
 
@@ -179,7 +180,7 @@ TR = {
   "f_b_done": "Import finished: {added} added, {skipped} already existed, {expired} expired (skipped), {failed} failed",
   "f_b_failed": "Failed users: {names} (see: journalctl -u ovpn-panel)",
   "f_b_safety": "A safety copy of the previous certificates was saved to {path}",
-  "nav_adv": "Advanced", "signed_as": "Signed in as", "login_user": "Username",
+  "nav_adv": "Advanced", "nav_adv_acc": "My account", "nav_adv_px": "Proxy routing", "nav_adv_ex": "Exit servers & .ovpn address", "signed_as": "Signed in as", "login_user": "Username",
   "err_login": "Wrong username or password",
   "adv_title_acc": "My account", "adv_acc_desc": "Change your username and password. Leave the new password empty to keep the current one.",
   "adv_cur_pw": "Current password", "adv_username": "Username", "adv_new_pw": "New password",
@@ -274,7 +275,7 @@ TR = {
   "f_b_done": "وارد کردن تموم شد: {added} اضافه شد، {skipped} از قبل بود، {expired} منقضی (رد شد)، {failed} ناموفق",
   "f_b_failed": "کاربرهای ناموفق: {names} (لاگ: journalctl -u ovpn-panel)",
   "f_b_safety": "نسخه‌ی امن گواهی‌های قبلی اینجا ذخیره شد: {path}",
-  "nav_adv": "پیشرفته", "signed_as": "واردشده با", "login_user": "نام کاربری",
+  "nav_adv": "پیشرفته", "nav_adv_acc": "حساب من", "nav_adv_px": "مسیریابی پروکسی", "nav_adv_ex": "سرورهای خروجی و آدرس .ovpn", "signed_as": "واردشده با", "login_user": "نام کاربری",
   "err_login": "نام کاربری یا رمز اشتباه است",
   "adv_title_acc": "حساب من", "adv_acc_desc": "نام کاربری و رمزت رو عوض کن. اگه رمز جدید رو خالی بذاری رمز فعلی می‌مونه.",
   "adv_cur_pw": "رمز فعلی", "adv_username": "نام کاربری", "adv_new_pw": "رمز جدید",
@@ -327,6 +328,126 @@ TR = {
   "us_note": "مصرف از روی شمارنده‌های خود OpenVPN برای هر نشست حساب می‌شه (چیزی که واقعاً از تونل رد شده، با سربار رمزنگاری). دانلود یعنی داده‌ای که به سمت کاربر رفته. کاربر فقط وقتی آنلاین حساب می‌شه که دستگاهش با سرور در تماس باشه.",
  },
 }
+
+
+TR["en"].update({
+  "px_title": "Proxy routing (change exit IP)",
+  "px_desc": "Send users' TCP traffic through the upstream SOCKS4 / SOCKS5 / HTTP proxies below, so websites see the proxy's IP instead of this server's. Applies to every user of the panel.",
+  "px_enable": "Enable proxy routing",
+  "px_list": "Proxy list (one per line)",
+  "px_hint": "Formats: ip:port, socks5://ip:port, socks4://ip:port, http://ip:port, optionally with user:pass@ before the address. Lines without a scheme use the default type below. Lines starting with # are ignored.",
+  "px_dtype": "Default type (for lines without a scheme)",
+  "px_mode": "Rotation",
+  "px_m_sticky": "One proxy per user (changes only when it fails or after the interval)",
+  "px_m_random": "Random proxy for every connection",
+  "px_m_round": "Round-robin for every connection",
+  "px_rot": "Re-pick every (minutes, 0 = only when it fails) — one-proxy-per-user mode",
+  "px_fb": "If every proxy fails, connect directly (exposes this server's IP)",
+  "px_quic": "Block QUIC / HTTP3 (UDP 443) so browsers fall back to TCP and use the proxy",
+  "px_note": "Only TCP is proxied: UDP (DNS, calls, games) still leaves from this server. Free public proxies are slow and unreliable, and can read or alter traffic that is not encrypted. If the panel is stopped while this is enabled, users have no internet until it starts again.",
+  "px_save": "Save", "px_test": "Test all", "px_prune": "Remove failed",
+  "px_testing_n": "Testing {done} / {total}...",
+  "px_st_ok": "Working", "px_st_bad": "Failed", "px_st_unk": "Not tested", "px_st_cool": "Cooling down",
+  "px_none": "No proxies yet", "px_relay_bad": "The relay could not start on port {port} (port busy?)",
+  "px_status": "Proxies",
+  "f_px_saved": "Proxy settings saved: {n} proxies", "f_px_bad": " ({bad} invalid lines skipped)",
+  "f_px_empty": "Add at least one valid proxy before enabling", "f_px_many": "Too many proxies (max {max})",
+  "f_px_testing": "Testing started", "f_px_busy": "A test is already running", "f_px_pruned": "{n} failed proxies removed",
+})
+TR["fa"].update({
+  "px_title": "مسیردهی از طریق پروکسی (تغییر IP خروجی)",
+  "px_desc": "ترافیک TCP کاربرها از طریق پروکسی‌های SOCKS4 / SOCKS5 / HTTP زیر رد می‌شه، پس سایت‌ها به جای IP این سرور، IP پروکسی رو می‌بینن. برای همه‌ی کاربرهای پنل اعمال می‌شه.",
+  "px_enable": "فعال‌سازی مسیردهی از پروکسی",
+  "px_list": "لیست پروکسی‌ها (هر خط یکی)",
+  "px_hint": "فرمت‌ها: ip:port ، socks5://ip:port ، socks4://ip:port ، http://ip:port ، و اختیاری user:pass@ قبل از آدرس. خط‌های بدون scheme از نوع پیش‌فرض پایین استفاده می‌کنن. خط‌هایی که با # شروع بشن نادیده گرفته می‌شن.",
+  "px_dtype": "نوع پیش‌فرض (برای خط‌های بدون scheme)",
+  "px_mode": "چرخش",
+  "px_m_sticky": "یک پروکسی برای هر کاربر (فقط وقتی خراب بشه یا بعد از بازه‌ی زمانی عوض می‌شه)",
+  "px_m_random": "پروکسی تصادفی برای هر اتصال",
+  "px_m_round": "چرخشی (نوبتی) برای هر اتصال",
+  "px_rot": "تغییر پروکسی هر چند دقیقه (۰ = فقط وقتی خراب بشه) — برای حالت یک پروکسی برای هر کاربر",
+  "px_fb": "اگه همه‌ی پروکسی‌ها خراب بودن، مستقیم وصل شو (IP این سرور فاش می‌شه)",
+  "px_quic": "بستن QUIC / HTTP3 (‏UDP 443) تا مرورگر به TCP برگرده و از پروکسی رد بشه",
+  "px_note": "فقط TCP از پروکسی رد می‌شه: UDP (دی‌ان‌اس، تماس، بازی) هنوز از خود این سرور خارج می‌شه. پروکسی‌های رایگان عمومی کند و ناپایدارن و می‌تونن ترافیک رمزنشده رو بخونن یا تغییر بدن. اگه پنل وسط کار خاموش بشه تا دوباره بالا نیاد کاربرها اینترنت ندارن.",
+  "px_save": "ذخیره", "px_test": "تست همه", "px_prune": "حذف خراب‌ها",
+  "px_testing_n": "در حال تست {done} / {total}...",
+  "px_st_ok": "سالم", "px_st_bad": "خراب", "px_st_unk": "تست نشده", "px_st_cool": "موقتاً کنار گذاشته شده",
+  "px_none": "هنوز پروکسی‌ای نیست", "px_relay_bad": "رله روی پورت {port} بالا نیومد (پورت اشغاله؟)",
+  "px_status": "پروکسی‌ها",
+  "f_px_saved": "تنظیمات پروکسی ذخیره شد: {n} پروکسی", "f_px_bad": " ({bad} خط نامعتبر رد شد)",
+  "f_px_empty": "قبل از فعال کردن، حداقل یک پروکسی معتبر اضافه کن", "f_px_many": "تعداد پروکسی‌ها زیاده (حداکثر {max})",
+  "f_px_testing": "تست شروع شد", "f_px_busy": "یه تست دیگه در حال اجراست", "f_px_pruned": "{n} پروکسی خراب حذف شد",
+})
+
+
+TR["en"].update({
+  "ex_title": "Exit servers (your own SOCKS5 servers)",
+  "ex_desc": "Send users' TCP traffic out through your own servers in other countries (SOCKS5 with username and password). The panel rotates between the active servers and skips any that go down. Users' .ovpn files never change. While this is enabled it replaces Proxy Routing above.",
+  "ex_enable": "Enable exit servers",
+  "ex_m_sticky": "One exit server per user (changes only when it goes down or after the interval)",
+  "ex_m_random": "Random exit server for every connection",
+  "ex_m_round": "Round-robin for every connection",
+  "ex_rot": "Re-pick every (minutes, 0 = only when it goes down) — one-per-user mode",
+  "ex_fb": "If every exit server is down, connect directly (exposes this server's IP)",
+  "ex_note": "Only TCP leaves through the exit servers: UDP (DNS, calls, games) still leaves from this server. Servers are health-checked every 30 seconds. If the panel is stopped while this is enabled, users have no internet until it starts again. Set up each exit server with exit-server-setup.sh.",
+  "ex_servers": "Servers", "ex_none": "No exit servers yet", "ex_add": "Add server", "ex_add_btn": "Add",
+  "ex_ip": "IP or hostname", "ex_port": "Port", "ex_user": "Username", "ex_pw": "Password",
+  "ex_pw_keep": "Leave empty to keep the current password",
+  "ex_edit": "Edit", "ex_on": "Enable", "ex_off": "Disable", "ex_del": "Delete",
+  "ex_confirm_del": "Delete exit server {ip}?",
+  "ex_st_ok": "Working", "ex_st_bad": "Down", "ex_st_unk": "Not checked", "ex_st_cool": "Skipped for now", "ex_st_off": "Disabled",
+  "ex_testing_n": "Testing {done} / {total}...",
+  "f_ex_saved": "Exit server settings saved", "f_ex_added": "Exit server added", "f_ex_updated": "Exit server updated",
+  "f_ex_deleted": "Exit server deleted", "f_ex_toggled": "Exit server updated",
+  "f_ex_noactive": "Add and enable at least one exit server first",
+  "f_ex_autooff": "No active exit server is left, so exit routing was turned off",
+  "f_ex_bad_ip": "Invalid IP or hostname", "f_ex_bad_port": "Invalid port (1-65535)",
+  "f_ex_bad_user": "Username is required", "f_ex_bad_pw": "Password is required",
+  "f_ex_missing": "Exit server not found", "f_ex_many": "Too many exit servers (max {max})",
+})
+TR["fa"].update({
+  "ex_title": "سرورهای خروجی (سرورهای SOCKS5 خودت)",
+  "ex_desc": "ترافیک TCP کاربرها از سرورهای خودت توی کشورهای دیگه خارج می‌شه (SOCKS5 با یوزر و پسورد). پنل بین سرورهای فعال می‌چرخونه و سروری که قطع بشه رو دور می‌زنه. فایل .ovpn کاربرها هیچ‌وقت تغییر نمی‌کنه. تا وقتی این فعاله، جای «مسیردهی از طریق پروکسی» بالا رو می‌گیره.",
+  "ex_enable": "فعال‌سازی سرورهای خروجی",
+  "ex_m_sticky": "یک سرور خروجی برای هر کاربر (فقط وقتی قطع بشه یا بعد از بازه‌ی زمانی عوض می‌شه)",
+  "ex_m_random": "سرور خروجی تصادفی برای هر اتصال",
+  "ex_m_round": "چرخشی (نوبتی) برای هر اتصال",
+  "ex_rot": "تغییر سرور هر چند دقیقه (۰ = فقط وقتی قطع بشه) — برای حالت یک سرور برای هر کاربر",
+  "ex_fb": "اگه همه‌ی سرورهای خروجی قطع بودن، مستقیم وصل شو (IP این سرور فاش می‌شه)",
+  "ex_note": "فقط TCP از سرورهای خروجی خارج می‌شه: UDP (دی‌ان‌اس، تماس، بازی) هنوز از خود این سرور خارج می‌شه. سلامت سرورها هر ۳۰ ثانیه چک می‌شه. اگه پنل وسط کار خاموش بشه تا دوباره بالا نیاد کاربرها اینترنت ندارن. هر سرور خروجی رو با exit-server-setup.sh راه‌اندازی کن.",
+  "ex_servers": "سرورها", "ex_none": "هنوز سرور خروجی‌ای نیست", "ex_add": "افزودن سرور", "ex_add_btn": "افزودن",
+  "ex_ip": "آی‌پی یا هاست", "ex_port": "پورت", "ex_user": "یوزرنیم", "ex_pw": "پسورد",
+  "ex_pw_keep": "برای نگه داشتن پسورد فعلی خالی بذار",
+  "ex_edit": "ویرایش", "ex_on": "فعال", "ex_off": "غیرفعال", "ex_del": "حذف",
+  "ex_confirm_del": "سرور خروجی {ip} حذف بشه؟",
+  "ex_st_ok": "سالم", "ex_st_bad": "قطع", "ex_st_unk": "چک نشده", "ex_st_cool": "موقتاً دور زده می‌شه", "ex_st_off": "غیرفعال",
+  "ex_testing_n": "در حال تست {done} / {total}...",
+  "f_ex_saved": "تنظیمات سرورهای خروجی ذخیره شد", "f_ex_added": "سرور خروجی اضافه شد", "f_ex_updated": "سرور خروجی ویرایش شد",
+  "f_ex_deleted": "سرور خروجی حذف شد", "f_ex_toggled": "سرور خروجی به‌روز شد",
+  "f_ex_noactive": "اول حداقل یک سرور خروجی اضافه و فعال کن",
+  "f_ex_autooff": "هیچ سرور خروجی فعالی نمونده، برای همین مسیردهی از سرور خروجی خاموش شد",
+  "f_ex_bad_ip": "آی‌پی یا هاست نامعتبره", "f_ex_bad_port": "پورت نامعتبره (۱ تا ۶۵۵۳۵)",
+  "f_ex_bad_user": "یوزرنیم لازمه", "f_ex_bad_pw": "پسورد لازمه",
+  "f_ex_missing": "سرور خروجی پیدا نشد", "f_ex_many": "تعداد سرورهای خروجی زیاده (حداکثر {max})",
+})
+
+
+TR["en"].update({
+  "oa_title": "Address inside .ovpn files",
+  "oa_desc": "The IP or domain written in every downloaded .ovpn file. Put the IP of your Iran tunnel server here so users never have to edit the file. Leave it empty to use this server's own address. Users keep their own port, so the tunnel must carry those ports (see iran-tunnel-setup.sh).",
+  "oa_label": "Address (IP or domain)", "oa_ph": "e.g. 185.10.20.30",
+  "oa_hint": "Applies to every download right away, including users created earlier; clearing it brings the original address back. Files users already downloaded are not changed.",
+  "f_oa_saved": "Address saved", "f_oa_cleared": "Address cleared: files use this server's own address",
+  "f_oa_bad": "Enter only an IP or a domain name (no port, no http://)",
+})
+TR["fa"].update({
+  "oa_title": "آدرس داخل فایل‌های .ovpn",
+  "oa_desc": "آی‌پی یا دامنه‌ای که توی هر فایل .ovpn دانلودی نوشته می‌شه. آی‌پی سرور تانل ایران رو اینجا بذار تا کاربرها مجبور نشن فایل رو دستی ویرایش کنن. خالی بذاری آدرس خود همین سرور استفاده می‌شه. هر کاربر پورت خودش رو نگه می‌داره، پس تانل باید اون پورت‌ها رو جابه‌جا کنه (iran-tunnel-setup.sh).",
+  "oa_label": "آدرس (آی‌پی یا دامنه)", "oa_ph": "مثلاً 185.10.20.30",
+  "oa_hint": "همین الان برای همه‌ی دانلودها اعمال می‌شه، از جمله کاربرهای قبلی؛ خالی کردنش آدرس اصلی رو برمی‌گردونه. فایل‌هایی که کاربرها قبلاً دانلود کردن تغییر نمی‌کنن.",
+  "f_oa_saved": "آدرس ذخیره شد", "f_oa_cleared": "آدرس پاک شد: فایل‌ها از آدرس خود این سرور استفاده می‌کنن",
+  "f_oa_bad": "فقط آی‌پی یا نام دامنه وارد کن (بدون پورت و بدون http://)",
+})
 
 
 def cur_lang():
@@ -1417,6 +1538,646 @@ def sampler():
         tick += 1
 
 
+# ====================== upstream proxies (Advanced -> Proxy routing) ======================
+# Users' TCP traffic is redirected (iptables REDIRECT) to a small built-in transparent relay, which forwards each
+# connection through a SOCKS5 / SOCKS4 / HTTP-CONNECT proxy picked from the admin's list. UDP is not proxied.
+import base64
+import random
+import select
+import socketserver
+import struct
+from concurrent.futures import ThreadPoolExecutor
+
+PROXY_FILE = f"{BASE}/proxy.json"
+PROXY_LPORT = int(os.environ.get("PROXY_REDIR_PORT", "8091"))   # local port of the relay (never exposed: only VPN subnets may use it)
+PROXY_MAX = 500
+PLOCK = threading.RLock()
+PCFG_DEFAULT = {"enabled": False, "list": [], "dtype": "socks5", "mode": "sticky", "rotate_min": 0,
+                "fallback": False, "block_quic": True}
+PSTATE = {}      # proxy key -> {"ok","ip","ms","checked","fails","fail_until"}
+PSTICKY = {}     # user subnet -> (proxy key, picked at)
+PSUBS = set()    # subnets of existing users (only these may use the relay)
+PRR = [0]
+PTEST = {"running": False, "done": 0, "total": 0}
+PAPPLIED = {}    # (table, chain) -> rules last written
+PLIST = []       # parsed proxies
+PSRV = {"ok": False, "srv": None, "err": None}
+PCLEAN = [False]   # leftovers of a previous run already removed
+PCHAINS = (("nat", "GL_PROXY", "PREROUTING"), ("filter", "GL_PROXY_IN", "INPUT"), ("filter", "GL_PROXY_FW", "FORWARD"))
+
+
+class _Refused(OSError):
+    """The proxy answered but refused this destination (not a dead proxy)."""
+
+
+_PROXY_RE = re.compile(r"^(?:(socks5h?|socks4a?|http)://)?(?:([^:@/\s]*):([^@/\s]*)@)?([A-Za-z0-9.\-]+):(\d{1,5})$", re.I)
+_PTYPE = {"socks5": "socks5", "socks5h": "socks5", "socks4": "socks4", "socks4a": "socks4", "http": "http"}
+
+
+def proxy_parse(line, dtype="socks5"):
+    m = _PROXY_RE.match(line.strip())
+    if not m:
+        return None
+    port = int(m.group(5))
+    if not 1 <= port <= 65535:
+        return None
+    t = _PTYPE[m.group(1).lower()] if m.group(1) else dtype
+    host = m.group(4)
+    return {"type": t, "host": host, "port": port, "user": m.group(2) or "", "pw": m.group(3) or "",
+            "key": f"{t}://{host}:{port}"}
+
+
+def proxy_line(p):
+    auth = f"{p['user']}:{p['pw']}@" if p["user"] else ""
+    return f"{p['type']}://{auth}{p['host']}:{p['port']}"
+
+
+def _pload():
+    cfg = dict(PCFG_DEFAULT)
+    try:
+        with open(PROXY_FILE) as f:
+            cfg.update(json.load(f))
+    except (OSError, ValueError):
+        pass
+    return cfg
+
+
+def _psave():
+    tmp = PROXY_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(PCFG, f, indent=2)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, PROXY_FILE)
+
+
+def _prebuild():
+    global PLIST
+    out, seen = [], set()
+    for line in PCFG["list"]:
+        p = proxy_parse(line, PCFG["dtype"])
+        if p and p["key"] not in seen:
+            seen.add(p["key"])
+            out.append(p)
+    PLIST = out
+    _peff()
+
+
+# ---- exit servers: your own SOCKS5 servers (user/password). While enabled they replace the free-proxy pool ----
+import ipaddress
+
+EXIT_FILE = f"{BASE}/exit_servers.json"
+EX_DEFAULT = {"enabled": False, "mode": "sticky", "rotate_min": 0, "fallback": False, "block_quic": True,
+              "next_id": 1, "servers": []}
+EXTEST = {"running": False, "done": 0, "total": 0}
+EXMAX = 50
+PPOOL = []        # proxies the relay uses right now
+PEFF = {"enabled": False, "mode": "sticky", "rotate_min": 0, "fallback": False, "block_quic": True}
+
+
+def _exload():
+    cfg = json.loads(json.dumps(EX_DEFAULT))
+    try:
+        with open(EXIT_FILE) as f:
+            cfg.update(json.load(f))
+    except (OSError, ValueError):
+        pass
+    return cfg
+
+
+def exit_proxy(s):
+    return {"type": "socks5", "host": s["ip"], "port": int(s["port"]), "user": s["username"], "pw": s["password"],
+            "key": f"exit:{s['id']}"}
+
+
+def _exlist():
+    return [exit_proxy(s) for s in EX["servers"] if s.get("is_active")]
+
+
+def _peff():
+    global PPOOL
+    if EX["enabled"] and EXLIST:
+        PEFF.update(enabled=True, mode=EX["mode"], rotate_min=EX["rotate_min"], fallback=EX["fallback"],
+                    block_quic=EX["block_quic"])
+        PPOOL = EXLIST
+    else:
+        PEFF.update(enabled=PCFG["enabled"], mode=PCFG["mode"], rotate_min=PCFG["rotate_min"],
+                    fallback=PCFG["fallback"], block_quic=PCFG["block_quic"])
+        PPOOL = PLIST
+
+
+EX = _exload()
+EXLIST = _exlist()
+
+
+PCFG = _pload()
+_prebuild()
+
+
+def _recvn(s, n):
+    buf = b""
+    while len(buf) < n:
+        c = s.recv(n - len(buf))
+        if not c:
+            raise OSError("closed")
+        buf += c
+    return buf
+
+
+def proxy_handshake(s, p, dip, dport):
+    ip4 = socket.inet_aton(dip)
+    if p["type"] == "socks5":
+        s.sendall(b"\x05\x02\x00\x02" if p["user"] else b"\x05\x01\x00")
+        r = _recvn(s, 2)
+        if r[0] != 5:
+            raise OSError("bad socks5 reply")
+        if r[1] == 2:
+            u, w = p["user"].encode()[:255], p["pw"].encode()[:255]
+            s.sendall(b"\x01" + bytes([len(u)]) + u + bytes([len(w)]) + w)
+            if _recvn(s, 2)[1] != 0:
+                raise OSError("socks5 auth failed")
+        elif r[1] != 0:
+            raise OSError("socks5 method rejected")
+        s.sendall(b"\x05\x01\x00\x01" + ip4 + struct.pack("!H", dport))
+        h = _recvn(s, 4)
+        if h[1] != 0:
+            raise _Refused("socks5 refused")
+        n = {1: 4, 4: 16}.get(h[3])
+        if n is None:
+            n = _recvn(s, 1)[0]
+        _recvn(s, n + 2)
+    elif p["type"] == "socks4":
+        s.sendall(b"\x04\x01" + struct.pack("!H", dport) + ip4 + p["user"].encode() + b"\x00")
+        if _recvn(s, 8)[1] != 0x5A:
+            raise _Refused("socks4 refused")
+    else:
+        req = f"CONNECT {dip}:{dport} HTTP/1.1\r\nHost: {dip}:{dport}\r\n"
+        if p["user"]:
+            req += "Proxy-Authorization: Basic " + base64.b64encode(f"{p['user']}:{p['pw']}".encode()).decode() + "\r\n"
+        s.sendall((req + "\r\n").encode())
+        buf = b""
+        while not buf.endswith(b"\r\n\r\n"):      # byte by byte: never swallow data that follows the headers
+            c = s.recv(1)
+            if not c or len(buf) > 8192:
+                raise OSError("bad http reply")
+            buf += c
+        if not re.match(rb"HTTP/1\.[01] 2\d\d", buf):
+            raise _Refused("http connect refused")
+
+
+def proxy_connect(p, dip, dport):
+    s = socket.create_connection((p["host"], p["port"]), timeout=5)
+    try:
+        s.settimeout(7)
+        proxy_handshake(s, p, dip, dport)
+        s.settimeout(None)
+        return s
+    except Exception:
+        s.close()
+        raise
+
+
+def proxy_mark(key, ok):
+    with PLOCK:
+        st = PSTATE.setdefault(key, {})
+        if ok:
+            st["fails"], st["fail_until"] = 0, 0
+        else:
+            st["fails"] = st.get("fails", 0) + 1
+            st["fail_until"] = time.time() + min(60 * st["fails"], 600)
+
+
+def proxy_pick(sub, exclude):
+    now = time.time()
+    with PLOCK:
+        items = [p for p in PPOOL if p["key"] not in exclude]
+        if not items:
+            return None
+        good = [p for p in items if PSTATE.get(p["key"], {}).get("fail_until", 0) <= now]
+        pool = good or items
+        mode = PEFF["mode"]
+        if mode == "sticky":
+            cur, rot = PSTICKY.get(sub), PEFF["rotate_min"] * 60
+            if cur and (not rot or now - cur[1] < rot):
+                for p in pool:
+                    if p["key"] == cur[0]:
+                        return p
+            p = random.choice(pool)
+            PSTICKY[sub] = (p["key"], now)
+            return p
+        if mode == "round":
+            PRR[0] += 1
+            return pool[PRR[0] % len(pool)]
+        return random.choice(pool)
+
+
+def _relay(a, b):
+    live = {a: b, b: a}
+    try:
+        while live:
+            r, _, _ = select.select(list(live), [], [], 300)
+            if not r:
+                break
+            for s in r:
+                try:
+                    data = s.recv(65536)
+                except OSError:
+                    data = b""
+                if data:
+                    try:
+                        live[s].sendall(data)
+                    except OSError:
+                        return
+                else:                       # this side finished sending: pass the half-close on
+                    dst = live.pop(s)
+                    try:
+                        dst.shutdown(socket.SHUT_WR)
+                    except OSError:
+                        pass
+    except (OSError, ValueError):
+        pass
+    finally:
+        a.close()
+        b.close()
+
+
+class _RedirHandler(socketserver.BaseRequestHandler):
+    def handle(self):
+        c = self.request
+        sub = self.client_address[0].rsplit(".", 1)[0]
+        if sub not in PSUBS:                # only VPN users' redirected connections are served
+            return
+        try:
+            d = c.getsockopt(socket.SOL_IP, 80, 16)          # SO_ORIGINAL_DST
+            dport, dip = struct.unpack("!H", d[2:4])[0], socket.inet_ntoa(d[4:8])
+        except OSError:
+            return
+        up = None
+        if PEFF["enabled"] and PPOOL:
+            tried = set()
+            for _ in range(4):
+                p = proxy_pick(sub, tried)
+                if not p:
+                    break
+                tried.add(p["key"])
+                try:
+                    up = proxy_connect(p, dip, dport)
+                    proxy_mark(p["key"], True)
+                    break
+                except _Refused:
+                    continue
+                except OSError:
+                    proxy_mark(p["key"], False)
+        if up is None and (PEFF["fallback"] or not PEFF["enabled"]):
+            try:
+                up = socket.create_connection((dip, dport), timeout=8)
+            except OSError:
+                return
+        if up is None:
+            return
+        _relay(c, up)
+
+
+class _RedirServer(socketserver.ThreadingMixIn, socketserver.TCPServer):
+    daemon_threads = True
+    allow_reuse_address = True
+    request_queue_size = 256
+
+
+def proxy_test_one(p, dip):
+    t0, ok, ip = time.time(), False, None
+    try:
+        if not dip:
+            raise OSError("dns")
+        s = proxy_connect(p, dip, 80)
+        try:
+            s.settimeout(8)
+            s.sendall(b"GET / HTTP/1.0\r\nHost: api.ipify.org\r\nConnection: close\r\n\r\n")
+            data = b""
+            while len(data) < 4096:
+                c = s.recv(1024)
+                if not c:
+                    break
+                data += c
+        finally:
+            s.close()
+        m = re.search(rb"\r\n\r\n\s*(\d{1,3}(?:\.\d{1,3}){3})\s*$", data)
+        if m:
+            ok, ip = True, m.group(1).decode()
+    except Exception:  # noqa
+        pass
+    with PLOCK:
+        st = PSTATE.setdefault(p["key"], {})
+        st.update(ok=ok, ip=ip, ms=int((time.time() - t0) * 1000) if ok else None, checked=time.time())
+        if ok:
+            st["fails"], st["fail_until"] = 0, 0
+        else:
+            st["fails"] = st.get("fails", 0) + 1
+            st["fail_until"] = time.time() + 300
+
+
+def proxy_test_all():
+    with PLOCK:
+        if PTEST["running"]:
+            return False
+        items = list(PLIST)
+        PTEST.update(running=True, done=0, total=len(items))
+
+    def work():
+        try:
+            try:
+                dip = socket.gethostbyname("api.ipify.org")
+            except OSError:
+                dip = None
+
+            def one(p):
+                try:
+                    proxy_test_one(p, dip)
+                finally:
+                    with PLOCK:
+                        PTEST["done"] += 1
+            with ThreadPoolExecutor(max_workers=20) as ex:
+                list(ex.map(one, items))
+        finally:
+            with PLOCK:
+                PTEST["running"] = False
+    threading.Thread(target=work, daemon=True).start()
+    return True
+
+
+def _ipt(table, *args):
+    return run(["iptables", *(["-t", table] if table != "filter" else []), *args])
+
+
+def _chain_apply(table, chain, parent, rules):
+    """rules=None removes the chain; otherwise the chain holds exactly `rules` and is the first rule of `parent`."""
+    if rules is None:
+        if _ipt(table, "-S", chain).returncode == 0:
+            while _ipt(table, "-D", parent, "-j", chain).returncode == 0:
+                pass
+            _ipt(table, "-F", chain)
+            _ipt(table, "-X", chain)
+        PAPPLIED.pop((table, chain), None)
+        return
+    if _ipt(table, "-S", chain).returncode != 0:
+        _ipt(table, "-N", chain)
+        PAPPLIED.pop((table, chain), None)
+    if PAPPLIED.get((table, chain)) != rules:
+        _ipt(table, "-F", chain)
+        for r in rules:
+            _ipt(table, "-A", chain, *r)
+        PAPPLIED[(table, chain)] = rules
+    first = [l for l in _ipt(table, "-S", parent).stdout.splitlines() if l.startswith("-A ")][:1]
+    if first != [f"-A {parent} -j {chain}"]:     # must stay above rules the panel inserts later (e.g. FORWARD ACCEPT per user)
+        while _ipt(table, "-D", parent, "-j", chain).returncode == 0:
+            pass
+        _ipt(table, "-I", parent, "1", "-j", chain)
+
+
+def _relay_ensure(on):
+    """The relay listens only while Proxy Routing / Exit servers is in use: nothing extra stays open otherwise."""
+    with PLOCK:
+        if on and PSRV["srv"] is None:
+            try:
+                srv = _RedirServer(("0.0.0.0", PROXY_LPORT), _RedirHandler)
+            except OSError as e:
+                PSRV["ok"] = False
+                if PSRV["err"] != str(e):
+                    print("proxy relay could not start:", e, flush=True)
+                    PSRV["err"] = str(e)
+                return
+            threading.Thread(target=srv.serve_forever, daemon=True).start()
+            PSRV.update(srv=srv, ok=True, err=None)
+        elif not on and PSRV["srv"] is not None:
+            srv = PSRV["srv"]
+            PSRV.update(srv=None, ok=False)
+            threading.Thread(target=lambda: (srv.shutdown(), srv.server_close()), daemon=True).start()
+
+
+def proxy_sync_rules():
+    global PSUBS
+    if not (PEFF["enabled"] and PPOOL):
+        if not PCLEAN[0] or PAPPLIED:          # remove leftovers once, then stay completely idle
+            for t, c, par in PCHAINS:
+                _chain_apply(t, c, par, None)
+            PCLEAN[0] = True
+        _relay_ensure(False)
+        return
+    _relay_ensure(True)
+    if not PSRV["ok"]:                         # relay could not start (port busy): never redirect users into nothing
+        return
+    PCLEAN[0] = False
+    subs = sorted({u["subnet"] for u in load_state()["users"]})
+    PSUBS = set(subs)
+    lp = str(PROXY_LPORT)
+    nat = [["-s", f"{s}.0/24", "!", "-d", f"{s}.0/24", "-p", "tcp", "-m", "addrtype", "!", "--dst-type", "LOCAL",
+            "-j", "REDIRECT", "--to-ports", lp] for s in subs]
+    inp = [["-s", f"{s}.0/24", "-p", "tcp", "--dport", lp, "-j", "ACCEPT"] for s in subs]
+    fw = [["-s", f"{s}.0/24", "-p", "udp", "--dport", "443", "-j", "REJECT"] for s in subs] if PEFF["block_quic"] else []
+    for (t, c, par), rules in zip(PCHAINS, (nat, inp, fw)):
+        _chain_apply(t, c, par, rules)
+
+
+def proxy_loop():
+    while True:
+        try:
+            proxy_sync_rules()
+        except Exception as e:  # noqa
+            print("proxy sync error:", e, flush=True)
+        time.sleep(15)
+
+
+def proxy_start():
+    threading.Thread(target=proxy_loop, daemon=True).start()
+    threading.Thread(target=exit_health_loop, daemon=True).start()
+
+
+def proxy_form():
+    return {"enabled": PCFG["enabled"], "text": "\n".join(PCFG["list"]), "dtype": PCFG["dtype"], "mode": PCFG["mode"],
+            "rotate_min": PCFG["rotate_min"], "fallback": PCFG["fallback"], "block_quic": PCFG["block_quic"],
+            "relay_ok": PSRV["ok"] or not PEFF["enabled"], "relay_port": PROXY_LPORT}
+
+
+def proxy_view():
+    now = time.time()
+    with PLOCK:
+        rows = []
+        for p in PLIST:
+            st = PSTATE.get(p["key"], {})
+            rows.append({"addr": f"{p['type']}://{p['host']}:{p['port']}" + (" (auth)" if p["user"] else ""),
+                         "ok": st.get("ok"), "ip": st.get("ip"), "ms": st.get("ms"),
+                         "cool": st.get("fail_until", 0) > now})
+        return {"rows": rows, "test": dict(PTEST)}
+
+
+# ====================== exit servers (Advanced -> Exit servers) ======================
+_HOST_RE = re.compile(r"^[A-Za-z0-9.\-]{1,253}$")
+
+
+def _exsave():
+    tmp = EXIT_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump(EX, f, indent=2)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, EXIT_FILE)
+
+
+def _exrebuild():
+    global EXLIST
+    EXLIST = _exlist()
+    _peff()
+
+
+def exit_validate(f, need_password=True):
+    """-> (fields, error_key). Password may stay empty on edit (keeps the old one)."""
+    ip = f.get("ip", "").strip()
+    if not _HOST_RE.match(ip):
+        return None, "f_ex_bad_ip"
+    if re.fullmatch(r"[0-9.]+", ip):
+        try:
+            ipaddress.IPv4Address(ip)
+        except ValueError:
+            return None, "f_ex_bad_ip"
+    try:
+        port = int(f.get("port", "").strip())
+    except ValueError:
+        return None, "f_ex_bad_port"
+    if not 1 <= port <= 65535:
+        return None, "f_ex_bad_port"
+    user, pw = f.get("username", "").strip(), f.get("password", "")
+    if not user or len(user) > 255 or re.search(r"[\x00-\x1f]", user):
+        return None, "f_ex_bad_user"
+    if (need_password and not pw) or len(pw) > 255 or re.search(r"[\x00-\x1f]", pw):
+        return None, "f_ex_bad_pw"
+    return {"ip": ip, "port": port, "username": user, "password": pw}, None
+
+
+def _exstate(s, now):
+    st = PSTATE.get(f"exit:{s['id']}", {})
+    if not s.get("is_active"):
+        return "off"
+    if st.get("ok") is False:
+        return "bad"
+    if st.get("fail_until", 0) > now:
+        return "cool"
+    return "ok" if st.get("ok") is True else "unk"
+
+
+def exit_rows():
+    now = time.time()
+    with PLOCK:
+        out = []
+        for s in EX["servers"]:
+            st = PSTATE.get(f"exit:{s['id']}", {})
+            out.append({"id": s["id"], "ip": s["ip"], "port": s["port"], "username": s["username"],
+                        "active": bool(s.get("is_active")), "state": _exstate(s, now),
+                        "exit_ip": st.get("ip"), "ms": st.get("ms")})
+        return out
+
+
+def exit_form():
+    return {"enabled": EX["enabled"], "mode": EX["mode"], "rotate_min": EX["rotate_min"], "fallback": EX["fallback"],
+            "block_quic": EX["block_quic"], "servers": exit_rows()}
+
+
+def exit_view():
+    rows = [{"id": r["id"], "state": r["state"], "exit_ip": r["exit_ip"], "ms": r["ms"]} for r in exit_rows()]
+    with PLOCK:
+        return {"servers": rows, "test": dict(EXTEST)}
+
+
+def exit_commit():
+    """Save, rebuild the pool and re-apply firewall rules. Turns the feature off when no active server is left."""
+    with PLOCK:
+        auto = False
+        if EX["enabled"] and not any(s.get("is_active") for s in EX["servers"]):
+            EX["enabled"], auto = False, True
+        _exsave()
+        _exrebuild()
+        keys = {f"exit:{s['id']}" for s in EX["servers"]}
+        for k in [k for k in PSTATE if k.startswith("exit:") and k not in keys]:
+            PSTATE.pop(k, None)
+    proxy_sync_rules()
+    return auto
+
+
+def exit_test_all():
+    with PLOCK:
+        if EXTEST["running"]:
+            return False
+        items = [exit_proxy(s) for s in EX["servers"]]
+        EXTEST.update(running=True, done=0, total=len(items))
+
+    def work():
+        try:
+            try:
+                dip = socket.gethostbyname("api.ipify.org")
+            except OSError:
+                dip = None
+
+            def one(p):
+                try:
+                    proxy_test_one(p, dip)
+                finally:
+                    with PLOCK:
+                        EXTEST["done"] += 1
+            with ThreadPoolExecutor(max_workers=10) as ex:
+                list(ex.map(one, items))
+        finally:
+            with PLOCK:
+                EXTEST["running"] = False
+    threading.Thread(target=work, daemon=True).start()
+    return True
+
+
+def exit_health_loop():
+    """Every 30 s: check the active exit servers so a dead one is skipped quickly and a recovered one comes back."""
+    while True:
+        time.sleep(30)
+        try:
+            if EX["enabled"] and EXLIST and not EXTEST["running"]:
+                dip = socket.gethostbyname("api.ipify.org")
+                with ThreadPoolExecutor(max_workers=8) as ex:
+                    list(ex.map(lambda p: proxy_test_one(p, dip), list(EXLIST)))
+        except Exception:  # noqa
+            pass
+
+
+# ====================== address written into downloaded .ovpn files (Advanced) ======================
+OVPN_ADDR_FILE = f"{BASE}/ovpn_addr.json"
+
+
+def ovpn_addr():
+    try:
+        with open(OVPN_ADDR_FILE) as f:
+            a = str(json.load(f).get("addr", "")).strip()
+    except (OSError, ValueError, AttributeError):
+        return ""
+    return a if _HOST_RE.match(a) else ""
+
+
+def ovpn_addr_valid(a):
+    if not _HOST_RE.match(a):
+        return False
+    if re.fullmatch(r"[0-9.]+", a):
+        try:
+            ipaddress.IPv4Address(a)
+        except ValueError:
+            return False
+    return True
+
+
+def ovpn_bytes(path):
+    """The .ovpn file as it is stored, with the host of its `remote` line replaced when an address is set
+    (the port stays the user's own port). Done at download time, so existing users are covered and clearing
+    the box brings the original address back."""
+    with open(path, encoding="utf-8") as f:
+        data = f.read()
+    a = ovpn_addr()
+    if a:
+        data = re.sub(r"^remote (\S+) (\d+)", lambda m: f"remote {a} {m.group(2)}", data, count=1, flags=re.M)
+    return data.encode("utf-8")
+
+
 # ====================== auth ======================
 DUMMY_HASH = generate_password_hash("not-a-real-password")
 
@@ -1759,10 +2520,35 @@ def reset_user_usage(name):
     return redirect(url_for("index"))
 
 
+ADV_SUBPAGES = {"account": "adv_pg_account", "proxy": "adv_pg_proxy", "exit": "adv_pg_exit"}
+
+
 @app.route("/advanced")
 @login_required
 def advanced_page():
-    return page(ADV_HTML, active="adv", admins=[a["username"] for a in load_auth()["users"]])
+    # the POST handlers below still redirect here: send the person back to the sub page they were just on
+    return redirect(url_for(ADV_SUBPAGES.get(session.get("adv_last"), "adv_pg_account")))
+
+
+@app.route("/advanced/my-account")
+@login_required
+def adv_pg_account():
+    session["adv_last"] = "account"
+    return page(ADV_ACC_HTML, active="adv_acc", admins=[a["username"] for a in load_auth()["users"]])
+
+
+@app.route("/advanced/proxy-routing")
+@login_required
+def adv_pg_proxy():
+    session["adv_last"] = "proxy"
+    return page(ADV_PX_HTML, active="adv_px", px=proxy_form())
+
+
+@app.route("/advanced/exit-servers")
+@login_required
+def adv_pg_exit():
+    session["adv_last"] = "exit"
+    return page(ADV_EX_HTML, active="adv_ex", ex=exit_form(), oa={"addr": ovpn_addr()})
 
 
 @app.route("/advanced/account", methods=["POST"])
@@ -1825,6 +2611,204 @@ def adv_user_delete(uname):
             a["users"] = [x for x in a["users"] if x["username"] != uname]
             save_auth(a)
             flash(tr("f_adm_deleted", name=uname), "ok")
+    return redirect(url_for("advanced_page"))
+
+
+@app.route("/advanced/proxy/save", methods=["POST"])
+@login_required
+def adv_proxy_save():
+    f = request.form
+    dtype = f.get("dtype", "socks5")
+    dtype = dtype if dtype in ("socks5", "socks4", "http") else "socks5"
+    mode = f.get("mode", "sticky")
+    mode = mode if mode in ("sticky", "random", "round") else "sticky"
+    try:
+        rot = max(0, min(int(f.get("rotate_min", "0") or 0), 1440))
+    except ValueError:
+        rot = 0
+    lines, seen, bad = [], set(), 0
+    for raw in f.get("list", "").splitlines():
+        raw = raw.strip()
+        if not raw or raw.startswith("#"):
+            continue
+        p = proxy_parse(raw, dtype)
+        if not p:
+            bad += 1
+        elif p["key"] not in seen:
+            seen.add(p["key"])
+            lines.append(proxy_line(p))
+    enabled = f.get("enabled") == "1"
+    if len(lines) > PROXY_MAX:
+        flash(tr("f_px_many", max=PROXY_MAX), "err")
+    elif enabled and not lines:
+        flash(tr("f_px_empty"), "err")
+    else:
+        with PLOCK:
+            PCFG.update(enabled=enabled, list=lines, dtype=dtype, mode=mode, rotate_min=rot,
+                        fallback=f.get("fallback") == "1", block_quic=f.get("block_quic") == "1")
+            _psave()
+            _prebuild()
+            keys = {p["key"] for p in PLIST}
+            for k in [k for k in PSTATE if k not in keys and not k.startswith("exit:")]:
+                PSTATE.pop(k, None)
+            for s in [s for s, v in PSTICKY.items() if v[0] not in keys and not v[0].startswith("exit:")]:
+                PSTICKY.pop(s, None)
+        proxy_sync_rules()
+        flash(tr("f_px_saved", n=len(PLIST)) + (tr("f_px_bad", bad=bad) if bad else ""), "ok")
+    return redirect(url_for("advanced_page"))
+
+
+@app.route("/advanced/proxy/test", methods=["POST"])
+@login_required
+def adv_proxy_test():
+    flash(tr("f_px_testing") if proxy_test_all() else tr("f_px_busy"), "ok")
+    return redirect(url_for("advanced_page"))
+
+
+@app.route("/advanced/proxy/prune", methods=["POST"])
+@login_required
+def adv_proxy_prune():
+    with PLOCK:
+        dead = {p["key"] for p in PLIST if PSTATE.get(p["key"], {}).get("ok") is False}
+        if dead:
+            PCFG["list"] = [l for l in PCFG["list"]
+                            if (proxy_parse(l, PCFG["dtype"]) or {}).get("key") not in dead]
+            _psave()
+            _prebuild()
+            for k in dead:
+                PSTATE.pop(k, None)
+            for s in [s for s, v in PSTICKY.items() if v[0] in dead]:
+                PSTICKY.pop(s, None)
+    if dead:
+        proxy_sync_rules()
+    flash(tr("f_px_pruned", n=len(dead)), "ok")
+    return redirect(url_for("advanced_page"))
+
+
+@app.route("/api/proxy")
+@login_required
+def api_proxy():
+    return jsonify(proxy_view())
+
+
+def _ex_find(sid):
+    return next((s for s in EX["servers"] if s["id"] == sid), None)
+
+
+@app.route("/advanced/exit/settings", methods=["POST"])
+@login_required
+def adv_exit_settings():
+    f = request.form
+    mode = f.get("mode", "sticky")
+    mode = mode if mode in ("sticky", "random", "round") else "sticky"
+    try:
+        rot = max(0, min(int(f.get("rotate_min", "0") or 0), 1440))
+    except ValueError:
+        rot = 0
+    enabled = f.get("enabled") == "1"
+    if enabled and not any(s.get("is_active") for s in EX["servers"]):
+        flash(tr("f_ex_noactive"), "err")
+    else:
+        with PLOCK:
+            EX.update(enabled=enabled, mode=mode, rotate_min=rot, fallback=f.get("fallback") == "1",
+                      block_quic=f.get("block_quic") == "1")
+        exit_commit()
+        flash(tr("f_ex_saved"), "ok")
+    return redirect(url_for("advanced_page"))
+
+
+@app.route("/advanced/exit/add", methods=["POST"])
+@login_required
+def adv_exit_add():
+    fields, err = exit_validate(request.form)
+    if err:
+        flash(tr(err), "err")
+    elif len(EX["servers"]) >= EXMAX:
+        flash(tr("f_ex_many", max=EXMAX), "err")
+    else:
+        with PLOCK:
+            EX["servers"].append({"id": EX["next_id"], **fields, "is_active": True})
+            EX["next_id"] += 1
+        exit_commit()
+        flash(tr("f_ex_added"), "ok")
+    return redirect(url_for("advanced_page"))
+
+
+@app.route("/advanced/exit/<int:sid>/update", methods=["POST"])
+@login_required
+def adv_exit_update(sid):
+    s = _ex_find(sid)
+    if not s:
+        flash(tr("f_ex_missing"), "err")
+        return redirect(url_for("advanced_page"))
+    fields, err = exit_validate(request.form, need_password=False)
+    if err:
+        flash(tr(err), "err")
+    else:
+        with PLOCK:
+            if not fields["password"]:
+                fields["password"] = s["password"]
+            s.update(fields)
+            PSTATE.pop(f"exit:{sid}", None)
+        exit_commit()
+        flash(tr("f_ex_updated"), "ok")
+    return redirect(url_for("advanced_page"))
+
+
+@app.route("/advanced/exit/<int:sid>/toggle", methods=["POST"])
+@login_required
+def adv_exit_toggle(sid):
+    s = _ex_find(sid)
+    if not s:
+        flash(tr("f_ex_missing"), "err")
+    else:
+        with PLOCK:
+            s["is_active"] = not s.get("is_active")
+        auto = exit_commit()
+        flash(tr("f_ex_autooff") if auto else tr("f_ex_toggled"), "err" if auto else "ok")
+    return redirect(url_for("advanced_page"))
+
+
+@app.route("/advanced/exit/<int:sid>/delete", methods=["POST"])
+@login_required
+def adv_exit_delete(sid):
+    s = _ex_find(sid)
+    if not s:
+        flash(tr("f_ex_missing"), "err")
+    else:
+        with PLOCK:
+            EX["servers"].remove(s)
+        auto = exit_commit()
+        flash(tr("f_ex_autooff") if auto else tr("f_ex_deleted"), "err" if auto else "ok")
+    return redirect(url_for("advanced_page"))
+
+
+@app.route("/advanced/exit/test", methods=["POST"])
+@login_required
+def adv_exit_test():
+    flash(tr("f_px_testing") if exit_test_all() else tr("f_px_busy"), "ok")
+    return redirect(url_for("advanced_page"))
+
+
+@app.route("/api/exit")
+@login_required
+def api_exit():
+    return jsonify(exit_view())
+
+
+@app.route("/advanced/ovpn-addr", methods=["POST"])
+@login_required
+def adv_ovpn_addr():
+    a = request.form.get("addr", "").strip()
+    if a and not ovpn_addr_valid(a):
+        flash(tr("f_oa_bad"), "err")
+    else:
+        tmp = OVPN_ADDR_FILE + ".tmp"
+        with open(tmp, "w") as f:
+            json.dump({"addr": a}, f)
+        os.chmod(tmp, 0o600)
+        os.replace(tmp, OVPN_ADDR_FILE)
+        flash(tr("f_oa_saved") if a else tr("f_oa_cleared"), "ok")
     return redirect(url_for("advanced_page"))
 
 
@@ -1931,6 +2915,7 @@ def portal_view(token):
         server = m.group(1) if m else ""
     except OSError:
         pass
+    server = ovpn_addr() or server
     return jsonify(name=u["name"], proto=u.get("proto", "udp"), port=u["port"], server=server,
                    speed=u.get("speed"), created=u["created"], expires=u.get("expires"), now=time.time(),
                    blocked=u.get("blocked"), online=bool(cn.get("online")), ip=cn.get("ip"),
@@ -1959,7 +2944,7 @@ def portal_ovpn(token):
             build_ovpn(u["name"], u["port"], path, u.get("proto", "udp"))
         except Exception:
             return jsonify(error="no_file"), 404
-    resp = send_file(path, mimetype="application/x-openvpn-profile", as_attachment=True,
+    resp = send_file(io.BytesIO(ovpn_bytes(path)), mimetype="application/x-openvpn-profile", as_attachment=True,
                      download_name=f"{u['name']}.ovpn")
     resp.headers["Cache-Control"] = "no-store"
     return resp
@@ -1992,7 +2977,7 @@ def download(name):
             build_ovpn(name, u["port"], path, u.get("proto", "udp"))
         except Exception:
             abort(404)
-    return send_file(path, as_attachment=True, download_name=f"{name}.ovpn")
+    return send_file(io.BytesIO(ovpn_bytes(path)), as_attachment=True, download_name=f"{name}.ovpn")
 
 
 # ====================== API ======================
@@ -2081,6 +3066,27 @@ backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 text-decoration:none;font-size:14px;font-weight:500;transition:.2s}
 .links a:hover{color:var(--tx);background:var(--inp)}
 .links a.on{color:#fff;background:linear-gradient(135deg,var(--p1),var(--p2));box-shadow:0 6px 18px rgba(109,124,255,.35)}
+/* ---------- Advanced sub-menu ---------- */
+.grp{display:flex;flex-direction:column}
+.gbtn{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border-radius:12px;border:0;background:none;
+color:var(--mut);font:inherit;font-size:14px;font-weight:500;cursor:pointer;text-align:start;transition:.2s}
+.gbtn:hover,.gbtn.on,.grp.open .gbtn{color:var(--tx);background:var(--inp)}
+.gbtn .chev{margin-inline-start:auto;transition:transform .35s cubic-bezier(.4,0,.2,1)}
+.grp.open .chev{transform:rotate(180deg)}
+.smenu{display:grid;grid-template-rows:0fr;transition:grid-template-rows .38s cubic-bezier(.4,0,.2,1)}
+.grp.open .smenu{grid-template-rows:1fr}
+.smenu>div{min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:4px;visibility:hidden;
+margin-inline-start:22px;padding-inline-start:10px;border-inline-start:2px solid var(--bd);
+transition:visibility 0s .38s}
+.grp.open .smenu>div{visibility:visible;padding-top:6px;transition-delay:0s}
+.links .smenu a{padding:9px 12px;font-size:13.5px;opacity:0;transform:translateY(-8px);
+transition:opacity .3s,transform .3s,background .2s,color .2s}
+.grp.open .smenu a{opacity:1;transform:none}
+.grp.open .smenu a:nth-child(1){transition-delay:.06s,.06s,0s,0s}
+.grp.open .smenu a:nth-child(2){transition-delay:.12s,.12s,0s,0s}
+.grp.open .smenu a:nth-child(3){transition-delay:.18s,.18s,0s,0s}
+.links .smenu a.on{color:#fff;background:linear-gradient(135deg,var(--p1),var(--p2));box-shadow:0 6px 18px rgba(109,124,255,.35)}
+@media(prefers-reduced-motion:reduce){.smenu,.smenu a,.gbtn .chev{transition:none!important}}
 .side-foot{margin-top:auto;display:flex;flex-direction:column;gap:8px;padding-top:14px;border-top:1px solid var(--bd)}
 .me{display:flex;align-items:center;gap:8px;padding:4px 6px;color:var(--mut);font-size:13px}
 .me b{color:var(--tx)}
@@ -2231,6 +3237,8 @@ width:calc(100% - 28px);max-width:540px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
  .side-brand{display:none}
  .side-foot{margin-top:8px}
  .links a{padding:13px 14px;font-size:15px;background:var(--inp)}
+ .gbtn{padding:13px 14px;font-size:15px;background:var(--inp)}
+ .links .smenu a{padding:12px 14px;font-size:14px}
  .side-foot .btn{padding:13px 14px;font-size:15px}
  .wrap{margin-right:0;padding:16px 12px 48px}
 }
@@ -2290,7 +3298,14 @@ TOP = """<!doctype html><html lang="{{ lang }}" dir="{{ dirn }}"><head><meta cha
 <a href="{{ url_for('network') }}" class="{{ 'on' if active=='net' }}">{{ ic('wifi') }}<span>{{ t('nav_net') }}</span></a>
 <a href="{{ url_for('usage') }}" class="{{ 'on' if active=='usage' }}">{{ ic('bars') }}<span>{{ t('nav_usage') }}</span></a>
 <a href="{{ url_for('backup_page') }}" class="{{ 'on' if active=='backup' }}">{{ ic('drive') }}<span>{{ t('nav_backup') }}</span></a>
-<a href="{{ url_for('advanced_page') }}" class="{{ 'on' if active=='adv' }}">{{ ic('sliders') }}<span>{{ t('nav_adv') }}</span></a>
+{% set advon = active in ('adv_acc','adv_px','adv_ex') %}
+<div class="grp {{ 'open' if advon }}" id="advgrp">
+<button type="button" class="gbtn {{ 'on' if advon }}" id="advbtn" aria-expanded="{{ 'true' if advon else 'false' }}" aria-controls="advsub">{{ ic('sliders') }}<span>{{ t('nav_adv') }}</span>{{ ic('chevron',16,'chev') }}</button>
+<div class="smenu" id="advsub"><div>
+<a href="{{ url_for('adv_pg_account') }}" class="{{ 'on' if active=='adv_acc' }}">{{ ic('key',16) }}<span>{{ t('nav_adv_acc') }}</span></a>
+<a href="{{ url_for('adv_pg_proxy') }}" class="{{ 'on' if active=='adv_px' }}">{{ ic('globe',16) }}<span>{{ t('nav_adv_px') }}</span></a>
+<a href="{{ url_for('adv_pg_exit') }}" class="{{ 'on' if active=='adv_ex' }}">{{ ic('server',16) }}<span>{{ t('nav_adv_ex') }}</span></a>
+</div></div></div>
 </nav>
 <div class="side-foot">
 <div class="me">{{ ic('user',16) }}<span>{{ t('signed_as') }} <b>{{ me }}</b></span></div>
@@ -2307,7 +3322,9 @@ BOTTOM = """</div></main>
 function set(o){m.classList.toggle('open',o);b.classList.toggle('open',o);b.setAttribute('aria-expanded',o)}
 b.addEventListener('click',function(e){e.stopPropagation();set(!m.classList.contains('open'))});
 document.addEventListener('click',function(e){if(!m.contains(e.target))set(false)});
-window.addEventListener('resize',function(){if(window.innerWidth>980)set(false)});})();
+window.addEventListener('resize',function(){if(window.innerWidth>980)set(false)});
+var g=document.getElementById('advgrp'),gb=document.getElementById('advbtn');
+if(g&&gb)gb.addEventListener('click',function(){var o=!g.classList.contains('open');g.classList.toggle('open',o);gb.setAttribute('aria-expanded',o)});})();
 </script></body></html>"""
 
 DASH_HTML = """
@@ -2613,7 +3630,7 @@ document.getElementById('impf').addEventListener('submit',function(e){
 </script>
 """
 
-ADV_HTML = """
+ADV_ACC_HTML = """
 <div class="two-col">
 <div class="card"><h3>{{ ic('key') }} {{ t('adv_title_acc') }}</h3>
 <p class="muted">{{ t('adv_acc_desc') }}</p>
@@ -2639,6 +3656,146 @@ onsubmit='return confirm({{ t("adv_del_confirm", name=a)|tojson }})'><button cla
 </div>
 """
 
+ADV_PX_HTML = """
+<div class="card pxx"><h3>{{ ic('globe') }} {{ t('px_title') }}</h3>
+<style>.pxx select,.pxx textarea{width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--bd);background:var(--inp);color:var(--tx);font:inherit;outline:none}
+.pxx textarea{resize:vertical;min-height:130px;font-size:13px;direction:ltr}.pxx option{background:var(--bg);color:var(--tx)}
+.pxx .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.pxx .alist{max-height:340px;overflow:auto}</style>
+<p class="muted">{{ t('px_desc') }}</p>
+{% if not px.relay_ok %}<p class="muted" style="color:var(--bad)">{{ t('px_relay_bad', port=px.relay_port) }}</p>{% endif %}
+<form method="post" action="{{ url_for('adv_proxy_save') }}" class="stack">
+<label class="chk"><input type="checkbox" name="enabled" value="1" {% if px.enabled %}checked{% endif %}><span>{{ t('px_enable') }}</span></label>
+<div><label>{{ t('px_list') }}</label><textarea name="list" class="mono" spellcheck="false" autocomplete="off" placeholder="socks5://1.2.3.4:1080">{{ px.text }}</textarea>
+<p class="hint" style="padding-inline-start:0;margin:6px 0 0">{{ t('px_hint') }}</p></div>
+<div><label>{{ t('px_dtype') }}</label><select name="dtype">
+<option value="socks5" {% if px.dtype=='socks5' %}selected{% endif %}>SOCKS5</option>
+<option value="socks4" {% if px.dtype=='socks4' %}selected{% endif %}>SOCKS4</option>
+<option value="http" {% if px.dtype=='http' %}selected{% endif %}>HTTP</option></select></div>
+<div><label>{{ t('px_mode') }}</label><select name="mode">
+<option value="sticky" {% if px.mode=='sticky' %}selected{% endif %}>{{ t('px_m_sticky') }}</option>
+<option value="random" {% if px.mode=='random' %}selected{% endif %}>{{ t('px_m_random') }}</option>
+<option value="round" {% if px.mode=='round' %}selected{% endif %}>{{ t('px_m_round') }}</option></select></div>
+<div><label>{{ t('px_rot') }}</label><input type="number" name="rotate_min" min="0" max="1440" value="{{ px.rotate_min }}"></div>
+<label class="chk"><input type="checkbox" name="block_quic" value="1" {% if px.block_quic %}checked{% endif %}><span>{{ t('px_quic') }}</span></label>
+<label class="chk"><input type="checkbox" name="fallback" value="1" {% if px.fallback %}checked{% endif %}><span>{{ t('px_fb') }}</span></label>
+<p class="hint" style="padding-inline-start:0">{{ ic('alert',14) }} {{ t('px_note') }}</p>
+<div><button class="btn">{{ ic('check',16) }} {{ t('px_save') }}</button></div></form>
+
+<h4>{{ ic('server',16) }} {{ t('px_status') }} <span class="muted" id="pxprog" style="margin:0"></span></h4>
+<div class="row" style="margin-bottom:10px">
+<form method="post" action="{{ url_for('adv_proxy_test') }}" style="margin:0"><button class="btn ghost sm">{{ ic('refresh',14) }} {{ t('px_test') }}</button></form>
+<form method="post" action="{{ url_for('adv_proxy_prune') }}" style="margin:0"><button class="btn red sm">{{ ic('trash',14) }} {{ t('px_prune') }}</button></form></div>
+<div class="alist" id="pxrows"></div>
+<script>
+(function(){
+var I={{ jt('px_st_ok','px_st_bad','px_st_unk','px_st_cool','px_none','px_testing_n')|tojson }};
+var box=document.getElementById('pxrows'),prog=document.getElementById('pxprog');
+function el(tag,cls,txt){var e=document.createElement(tag);if(cls)e.className=cls;if(txt!=null)e.textContent=txt;return e;}
+function render(d){
+ box.textContent='';
+ if(!d.rows.length){box.appendChild(el('div','empty',I.px_none));}
+ d.rows.forEach(function(x){
+  var r=el('div','arow'),a=el('span','mono',x.addr),b=el('span','');
+  b.style.cssText='display:flex;gap:10px;align-items:center;flex-wrap:wrap';
+  if(x.ip)b.appendChild(el('span','mono',x.ip));
+  if(x.ms)b.appendChild(el('span','muted',x.ms+' ms'));
+  b.lastChild&&(b.lastChild.style.margin='0');
+  if(x.ok===true)b.appendChild(el('span','pill on',I.px_st_ok));
+  else if(x.ok===false)b.appendChild(el('span','tag bad',I.px_st_bad));
+  else if(x.cool)b.appendChild(el('span','tag bad',I.px_st_cool));
+  else b.appendChild(el('span','pill',I.px_st_unk));
+  r.appendChild(a);r.appendChild(b);box.appendChild(r);});
+ prog.textContent=d.test.running?I.px_testing_n.replace('{done}',d.test.done).replace('{total}',d.test.total):'';
+}
+function poll(){fetch('/api/proxy',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+ render(d);if(d.test.running)setTimeout(poll,1500);}).catch(function(){});}
+poll();
+})();
+</script>
+</div>
+"""
+
+ADV_EX_HTML = """
+<div class="card pxx">
+<style>.pxx select,.pxx textarea{width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--bd);background:var(--inp);color:var(--tx);font:inherit;outline:none}
+.pxx textarea{resize:vertical;min-height:130px;font-size:13px;direction:ltr}.pxx option{background:var(--bg);color:var(--tx)}
+.pxx .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}.pxx .alist{max-height:340px;overflow:auto}</style><h3>{{ ic('server') }} {{ t('ex_title') }}</h3>
+<p class="muted">{{ t('ex_desc') }}</p>
+<form method="post" action="{{ url_for('adv_exit_settings') }}" class="stack">
+<label class="chk"><input type="checkbox" name="enabled" value="1" {% if ex.enabled %}checked{% endif %}><span>{{ t('ex_enable') }}</span></label>
+<div><label>{{ t('px_mode') }}</label><select name="mode">
+<option value="sticky" {% if ex.mode=='sticky' %}selected{% endif %}>{{ t('ex_m_sticky') }}</option>
+<option value="random" {% if ex.mode=='random' %}selected{% endif %}>{{ t('ex_m_random') }}</option>
+<option value="round" {% if ex.mode=='round' %}selected{% endif %}>{{ t('ex_m_round') }}</option></select></div>
+<div><label>{{ t('ex_rot') }}</label><input type="number" name="rotate_min" min="0" max="1440" value="{{ ex.rotate_min }}"></div>
+<label class="chk"><input type="checkbox" name="block_quic" value="1" {% if ex.block_quic %}checked{% endif %}><span>{{ t('px_quic') }}</span></label>
+<label class="chk"><input type="checkbox" name="fallback" value="1" {% if ex.fallback %}checked{% endif %}><span>{{ t('ex_fb') }}</span></label>
+<p class="hint" style="padding-inline-start:0">{{ ic('alert',14) }} {{ t('ex_note') }}</p>
+<div><button class="btn">{{ ic('check',16) }} {{ t('px_save') }}</button></div></form>
+
+<h4>{{ ic('server',16) }} {{ t('ex_servers') }} <span class="muted" id="exprog" style="margin:0"></span></h4>
+<div class="row" style="margin-bottom:10px">
+<form method="post" action="{{ url_for('adv_exit_test') }}" style="margin:0"><button class="btn ghost sm">{{ ic('refresh',14) }} {{ t('px_test') }}</button></form></div>
+<div class="alist">
+{% for s in ex.servers %}
+<div class="arow" style="flex-wrap:wrap;gap:10px">
+<span class="mono">{{ s.ip }}:{{ s.port }} <span class="muted" style="margin:0">{{ s.username }}</span></span>
+<span style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+<span class="mono muted" id="exd-{{ s.id }}" style="margin:0">{{ s.exit_ip or '' }}{% if s.ms %} · {{ s.ms }} ms{% endif %}</span>
+<span id="exs-{{ s.id }}" class="{% if s.state=='ok' %}pill on{% elif s.state in ('bad','cool') %}tag bad{% else %}pill{% endif %}">{{ t('ex_st_'+s.state) }}</span>
+<form method="post" action="{{ url_for('adv_exit_toggle', sid=s.id) }}" style="margin:0"><button class="btn ghost sm">{{ t('ex_off') if s.active else t('ex_on') }}</button></form>
+<form method="post" action="{{ url_for('adv_exit_delete', sid=s.id) }}" style="margin:0" onsubmit='return confirm({{ t("ex_confirm_del", ip=s.ip)|tojson }})'><button class="btn red sm" title="{{ t('ex_del') }}">{{ ic('trash',14) }}</button></form>
+</span>
+<details style="flex-basis:100%"><summary class="muted" style="cursor:pointer">{{ ic('edit',14) }} {{ t('ex_edit') }}</summary>
+<form method="post" action="{{ url_for('adv_exit_update', sid=s.id) }}" class="stack" style="margin-top:10px">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+<input name="ip" value="{{ s.ip }}" placeholder="{{ t('ex_ip') }}" required autocomplete="off">
+<input name="port" type="number" min="1" max="65535" value="{{ s.port }}" placeholder="{{ t('ex_port') }}" required>
+<input name="username" value="{{ s.username }}" placeholder="{{ t('ex_user') }}" required autocomplete="off">
+<input name="password" type="password" placeholder="{{ t('ex_pw_keep') }}" autocomplete="new-password"></div>
+<div><button class="btn sm">{{ ic('check',14) }} {{ t('px_save') }}</button></div></form></details>
+</div>
+{% else %}<div class="empty">{{ t('ex_none') }}</div>{% endfor %}
+</div>
+
+<h4>{{ ic('plus',16) }} {{ t('ex_add') }}</h4>
+<form method="post" action="{{ url_for('adv_exit_add') }}" class="stack">
+<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px">
+<input name="ip" placeholder="{{ t('ex_ip') }}" required autocomplete="off">
+<input name="port" type="number" min="1" max="65535" value="1080" placeholder="{{ t('ex_port') }}" required>
+<input name="username" placeholder="{{ t('ex_user') }}" required autocomplete="off">
+<input name="password" type="password" placeholder="{{ t('ex_pw') }}" required autocomplete="new-password"></div>
+<div><button class="btn">{{ ic('plus',16) }} {{ t('ex_add_btn') }}</button></div></form>
+<script>
+(function(){
+var I={{ jt('ex_st_ok','ex_st_bad','ex_st_unk','ex_st_cool','ex_st_off','ex_testing_n')|tojson }};
+var prog=document.getElementById('exprog');
+var CL={ok:'pill on',bad:'tag bad',cool:'tag bad',off:'pill',unk:'pill'};
+var TX={ok:I.ex_st_ok,bad:I.ex_st_bad,cool:I.ex_st_cool,off:I.ex_st_off,unk:I.ex_st_unk};
+function paint(x){
+ var e=document.getElementById('exs-'+x.id);if(!e)return;
+ e.className=CL[x.state];e.textContent=TX[x.state];
+ var d=document.getElementById('exd-'+x.id);
+ if(d)d.textContent=(x.exit_ip||'')+(x.ms?' \u00b7 '+x.ms+' ms':'');
+}
+function poll(){fetch('/api/exit',{credentials:'same-origin'}).then(function(r){return r.json()}).then(function(d){
+ d.servers.forEach(paint);
+ prog.textContent=d.test.running?I.ex_testing_n.replace('{done}',d.test.done).replace('{total}',d.test.total):'';
+ setTimeout(poll,d.test.running?1500:10000);}).catch(function(){setTimeout(poll,15000);});}
+setTimeout(poll,1500);
+})();
+</script>
+</div>
+
+<div class="card" style="margin-top:18px"><h3>{{ ic('link') }} {{ t('oa_title') }}</h3>
+<p class="muted">{{ t('oa_desc') }}</p>
+<form method="post" action="{{ url_for('adv_ovpn_addr') }}" class="stack">
+<div><label>{{ t('oa_label') }}</label><input name="addr" value="{{ oa.addr }}" placeholder="{{ t('oa_ph') }}" autocomplete="off" spellcheck="false" style="direction:ltr"></div>
+<p class="hint" style="padding-inline-start:0">{{ t('oa_hint') }}</p>
+<div><button class="btn">{{ ic('check',16) }} {{ t('px_save') }}</button></div></form>
+</div>
+"""
+
 
 if __name__ == "__main__":
     load_auth()      # creates the first "admin" account right at startup (needs PANEL_PASSWORD only once)
@@ -2648,4 +3805,5 @@ if __name__ == "__main__":
     threading.Thread(target=migrate_management, daemon=True).start()
     threading.Thread(target=reaper, daemon=True).start()
     threading.Thread(target=sampler, daemon=True).start()
+    proxy_start()
     app.run(host=HOST, port=PORT, threaded=True)
