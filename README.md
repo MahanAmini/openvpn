@@ -23,8 +23,8 @@ GassLight turns a freshly installed Ubuntu/Debian server into a complete VPN ser
 ## Table of Contents
 
 - [Installation](#installation)
-- [Iran Tunnel: Setup Tunnel](#iran-tunnel-setup-tunnel)
-- [Exit Server: Setup Exit Servers](#exit-server-setup-exit-servers)
+- [Iran Tunnel: Setup Tunnel](#iran-tunnel-iran-tunnel-setupsh)
+- [Exit Server: Setup Exit Servers](#exit-server-exit-server-setupsh)
 - [Proxy Routing](#proxy-routing)
 - [Features](#features)
 - [How It Works (Architecture)](#how-it-works-architecture)
