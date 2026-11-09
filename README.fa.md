@@ -348,7 +348,7 @@ sudo bash install.sh
 این اسکریپت روی **سرور ایران** اجرا می‌شود و همه چیزی که روی پورت‌های مشخص به این سرور می‌رسد (UDP + TCP) را دست‌نخورده به سرور خارجی (جایی که OpenVPN و پنل نصب است) رد می‌کند. هیچ‌چیز اینجا رمزگشایی یا بررسی نمی‌شود؛ این سرور فقط **حامل** است. رمزنگاری بین کاربر و سرور خارجی باقی می‌ماند.
 
 ```text
-      کاربر  --->  سرور ایران (این اسکریپت)  --->  سرور خارج (OpenVPN + پنل)
+      کاربر  --->  سرور ایران (این اسکریپت)  --->  سرور خارج
 ```
 
 ### اجرا
@@ -403,6 +403,8 @@ sudo bash iran-tunnel-setup.sh --to Panel-IP --ports 1194:3000
 ```bash
 wget https://raw.githubusercontent.com/mahanamini/openvpn/main/scripts/exit-server-setup.sh -O exit-server-setup.sh
 sudo bash exit-server-setup.sh --allow-ip Panel-IP [--port 1080] [--user NAME] [--pass PASSWORD]
+
+
 port, user, password are optional
 ```
 
@@ -482,7 +484,7 @@ port, user, password are optional
 1. یک سرور خارجی تازه (Debian/Ubuntu) بگیرید.
 2. روی آن اجرا کنید:
    ```bash
-   sudo bash exit-server-setup.sh --allow-ip IP_سرور_پنل_شما
+   sudo bash exit-server-setup.sh --allow-ip Panel_IP
    ```
    (اسکریپت در انتها IP، پورت، نام کاربری و رمز را چاپ می‌کند.)
 3. پورت پروکسی را در فایروال ابری آن سرور باز کنید.
