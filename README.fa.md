@@ -356,7 +356,8 @@ sudo bash install.sh
 روی سرور ایران به‌عنوان root:
 
 ```bash
-sudo bash iran-tunnel-setup.sh --to IP_سرور_خارجی [--ports 1194:3000]
+wget https://raw.githubusercontent.com/mahanamini/openvpn/main/scripts/iran-tunnel-setup.sh -O iran-tunnel-setup.sh
+sudo bash iran-tunnel-setup.sh --to Panel-IP --ports 1194:3000
 ```
 
 ### گزینه‌ها
