@@ -1,3 +1,16 @@
+<div align="center">
+<h1>OpenVPN</h1>
+<h4>⚡GassLight</h4>
+</div>
+
+<p align="center">
+  <a href="README.fa.md"><img alt="Language: Persian" src="https://img.shields.io/badge/Language-Persian-2ea44f?style=for-the-badge"></a>
+  <a href="README.md"><img alt="Language: English" src="https://img.shields.io/badge/Language-English-6d7cff?style=for-the-badge"></a>
+</p>
+
+<p align="center"><a href="README.fa.md">Persian</a> | English</p>
+
+---
 ## 🛰️ Overlay Tunnel: Iran server → rotating foreign relays → main server
 
 An optional overlay network for GassLight. Users stop connecting to the main server directly. They connect to a server **inside Iran**, which carries every connection through **VLESS + REALITY** (Xray) to one of several **foreign relay servers**. The active relay is changed at random every few minutes. The relay decrypts the traffic and hands it to the **main OpenVPN / GassLight server**.
