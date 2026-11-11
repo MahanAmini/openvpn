@@ -8,7 +8,7 @@ What it does
   * Every few minutes (always under 20) the panel picks another healthy relay at random and switches to it.
     A relay that stops answering is dropped immediately.
 
-Requires: python3-flask, root, the Xray binary (see iran-panel-setup.sh).
+Requires: python3-flask, root, the Xray binary (see overlay-panel-setup.sh).
 Env: PANEL_PASSWORD (needed once, creates the first admin), TUNNEL_PORT (default 8090), TUNNEL_HOST (0.0.0.0),
      TUNNEL_DATA (/opt/gl-tunnel), XRAY_BIN (/usr/local/bin/xray)
 """
@@ -245,7 +245,7 @@ TR = {
   "r_failover": "Failover",
   "r_manual": "Manual",
   "h_fail": "failed",
-  "w_noxray": "Xray is not installed at {path}. Run iran-panel-setup.sh (or set XRAY_BIN).",
+  "w_noxray": "Xray is not installed at {path}. Run overlay-panel-setup.sh (or set XRAY_BIN).",
   "w_nomain": "Set the main server address in Settings.",
   "w_norelay": "Add at least one relay.",
   "w_stopped": "The tunnel is stopped: users cannot connect through this server.",
@@ -430,7 +430,7 @@ TR = {
   "r_failover": "جایگزینی اضطراری",
   "r_manual": "دستی",
   "h_fail": "ناموفق",
-  "w_noxray": "Xray توی {path} نصب نیست. iran-panel-setup.sh رو اجرا کن (یا XRAY_BIN رو تنظیم کن).",
+  "w_noxray": "Xray توی {path} نصب نیست. overlay-panel-setup.sh رو اجرا کن (یا XRAY_BIN رو تنظیم کن).",
   "w_nomain": "آدرس سرور اصلی رو توی تنظیمات وارد کن.",
   "w_norelay": "حداقل یک ریله اضافه کن.",
   "w_stopped": "تانل خاموشه: کاربرها از این سرور نمی‌تونن وصل بشن.",
