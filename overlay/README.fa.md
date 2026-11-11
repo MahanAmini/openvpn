@@ -261,8 +261,6 @@ sudo systemctl status gl-xray            # Xray که پنل مدیریتش می�
 
 ### مرجع کامل دستورها
 
-همه‌ی دستورها به‌صورت اسپردشیت هم موجودند: [`overlay-commands.xlsx`](overlay/overlay-commands.xlsx).
-
 #### 1. دستورهای `overlay-panel-setup.sh` (سرور ایران)
 
 | دستور | کارکرد |
