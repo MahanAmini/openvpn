@@ -23,7 +23,8 @@
 ## فهرست
 
 - [نصب](#نصب)
-- [تانل ایران: Setup Tunnel](#تانل-ایران-iran-tunnel-setupsh)
+- [تانل ایران (ابتدایی): Setup Tunnel](#تانل-ایران-iran-tunnel-setupsh)
+- [تانل پیشرفته : Overlay Tunnel](https://github.com/MahanAmini/openvpn/blob/main/overlay/README.fa.md)
 - [سرور خروجی: Setup Exit Servers](#سرور-خروجی-exit-server-setupsh)
 - [مسیریابی از طریق پروکسی (Proxy routing)](#مسیریابی-از-طریق-پروکسی-proxy-routing)
 - [ویژگی‌ها](#ویژگی‌ها)
