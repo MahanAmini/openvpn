@@ -1,3 +1,16 @@
+<div align="center">
+<h1>OpenVPN</h1>
+<h4>⚡GassLight</h4>
+</div>
+
+<p align="center">
+  <a href="README.fa.md"><img alt="Language: Persian" src="https://img.shields.io/badge/Language-Persian-2ea44f?style=for-the-badge"></a>
+  <a href="README.md"><img alt="Language: English" src="https://img.shields.io/badge/Language-English-6d7cff?style=for-the-badge"></a>
+</p>
+
+<p align="center">فارسی | <a href="README.md">English</a></p>
+
+---
 <div dir="rtl">
 
 ## 🛰️ تانل Overlay: سرور ایران ← رله‌های خارجی چرخشی ← سرور اصلی
