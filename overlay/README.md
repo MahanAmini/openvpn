@@ -215,8 +215,6 @@ sudo systemctl status gl-xray            # Xray managed by the panel
 
 ### Full command reference
 
-All commands are also available as a spreadsheet: [`overlay-commands.xlsx`](overlay/overlay-commands.xlsx).
-
 #### 1. `overlay-panel-setup.sh` (Iran server)
 
 | Command | What it does |
