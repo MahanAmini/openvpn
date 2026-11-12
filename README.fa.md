@@ -23,8 +23,9 @@
 ## فهرست
 
 - [نصب](#نصب)
-- [تانل ایران (ابتدایی): Setup Tunnel](#تانل-ایران-iran-tunnel-setupsh)
+- [نصب BackPack Tunnel](#تانل-backpack-برای-gasslight-ایران--خارج)
 - [تانل پیشرفته : Overlay Tunnel](https://github.com/MahanAmini/openvpn/blob/main/overlay/README.fa.md)
+- [تانل ابتدایی: Setup Tunnel](#تانل-ایران-iran-tunnel-setupsh)
 - [سرور خروجی: Setup Exit Servers](#سرور-خروجی-exit-server-setupsh)
 - [مسیریابی از طریق پروکسی (Proxy routing)](#مسیریابی-از-طریق-پروکسی-proxy-routing)
 - [ویژگی‌ها](#ویژگی‌ها)
@@ -344,7 +345,312 @@ sudo bash install.sh
 
 ---
 
-## تانل ایران: iran-tunnel-setup.sh
+<div dir="rtl">
+
+## تانل BackPack برای GassLight (ایران ⇄ خارج)
+
+کاربرها به **سرور ایران** وصل می‌شوند و [BackPack](https://github.com/AminMGMT/BackPack) ترافیکشان را به **سرور اصلی (خارج)** که GassLight / OpenVPN روی آن اجرا می‌شود می‌رساند. کاربر هیچ‌وقت IP سرور اصلی را نمی‌بیند و تانل از نوع **reverse** است: سرور خارج به ایران وصل می‌شود، پس **به پورت ورودیِ باز برای تانل نیاز ندارد**.
+
+<div dir="ltr">
+
+```mermaid
+flowchart RL
+    U["👤 کلاینت OpenVPN<br/>(TCP)"] -->|"آی‌پی ایران : 1195-3000"| I["🇮🇷 سرور ایران<br/>BackPack"]
+    K["🌍 سرور خارج<br/>BackPack"] -.->|"اتصال خروجی<br/>TCP + PCK روی :443"| I
+    I ==>|"عبور از تانل"| K
+    K -->|"127.0.0.1 : پورت کاربر"| O["🖥️ OpenVPN ها<br/>(GassLight)"]
+```
+
+</div>
+
+**فهرست:** [مسیر سریع](#bp-quick) · [1. آماده‌سازی سرور خارج](#bp-1) · [2. نصب BackPack](#bp-2) · [3. سرور ایران](#bp-3) · [4. سرور خارج](#bp-4) · [5. پنل GassLight](#bp-5) · [6. بررسی](#bp-6) · [نکته‌ها](#bp-tips) · [عیب‌یابی](#bp-trouble) · [دستورها](#bp-cmds)
+
+---
+
+<a id="bp-quick"></a>
+
+### مسیر سریع
+
+| گام | سرور | کار |
+|---|---|---|
+| 1 | 🌍 خارج (اصلی) | اجرای ‎`ovpn-autopatch-setup.sh` تا OpenVPN به اتصال‌های ‎`127.0.0.1` هم جواب بدهد |
+| 2 | 🇮🇷 + 🌍 | نصب BackPack روی هر دو سرور |
+| 3 | 🇮🇷 ایران | ‎`sudo backpack` ← Setup Iran (Reverse، TCP + PCK، پورت ‎`443`، پورت‌های فوروارد ‎`1195-3000`) ← **لینک Setup** رو کپی کن |
+| 4 | 🌍 خارج | ‎`sudo backpack` ← Setup Kharej ← لینک رو پیست کن |
+| 5 | 🌍 پنل GassLight | Advanced ← *Address inside .ovpn files* = **آی‌پی ایران**؛ کاربرها رو با **TCP** بساز |
+
+> **همیشه اول سرور ایران رو تنظیم کن.** سمت خارج به لینک (آدرس، پورت تانل و توکن) نیاز داره که سمت ایران می‌سازه.
+
+---
+
+<a id="bp-1"></a>
+
+### 1. آماده‌سازی سرور خارج
+
+پنل کانفیگ هر کاربر رو از ‎`server.conf` اسکریپت Nyr می‌سازه و توش ‎`local <IP>` هست، یعنی OpenVPN **فقط** روی همون آدرس گوش می‌ده. BackPack ترافیک رو به ‎`127.0.0.1:<port>` روی سرور خارج می‌ده و اتصال رد می‌شه. اسکریپت زیر اون خط رو کامنت می‌کنه (‎`#local`) تا OpenVPN روی localhost هم گوش بده. آدرس عمومی مثل قبل کار می‌کنه.
+
+روی **سرور خارج (اصلی)** بزن. اسکریپت رو دانلود می‌کنه و همون لحظه اجرا می‌کنه:
+
+<div dir="ltr">
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MahanAmini/openvpn/main/backpack/ovpn-autopatch-setup.sh -o ovpn-autopatch-setup.sh && sudo bash ovpn-autopatch-setup.sh
+```
+
+</div>
+
+یه سرویس کوچیک (‎`ovpn-autopatch`) هم نصب می‌کنه که کانفیگ‌هایی که بعداً ساخته می‌شن رو هم درست می‌کنه. کاربرهای وصل‌شده **یک‌بار** ری‌استارت می‌شن (چند ثانیه، کلاینت خودش دوباره وصل می‌شه). برای جلوگیری از این قطعی ‎`--no-restart` اضافه کن (به کاربرها دست نمی‌زنه، ولی سرویس پچ‌شده بعد از ری‌استارت بعدیش روی localhost گوش می‌ده). گزینه‌های بیشتر [آخر همین فایل](#bp-cmds) هست.
+
+چک کن کار کرده (باید ‎`0.0.0.0:<port>` ببینی، نه یه آدرس IP):
+
+<div dir="ltr">
+
+```bash
+sudo ss -lntp | grep 1195      # کاربر TCP
+sudo ss -lnup | grep 1195      # کاربر UDP
+```
+
+</div>
+
+
+<a id="bp-2"></a>
+
+### 2. نصب BackPack روی هر دو سرور
+
+روی سرور **ایران** و **خارج** (با root):
+
+<div dir="ltr">
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AminMGMT/BackPack/main/install.sh | sudo bash
+```
+
+</div>
+
+یا
+
+<div dir="ltr">
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/AminMGMT/BackPack/main/install.sh)
+```
+
+</div>
+
+بعد منو رو باز کن:
+
+<div dir="ltr">
+
+```bash
+sudo backpack
+```
+
+</div>
+
+PCK (ترنسپورتی که اینجا استفاده می‌شه) روی هر دو سر **لینوکس و root** می‌خواد.
+
+---
+
+<a id="bp-3"></a>
+
+### 3. تنظیم سرور ایران
+
+<div dir="ltr">
+
+```bash
+sudo backpack
+```
+
+</div>
+
+| سؤال | جواب |
+|---|---|
+| منوی اصلی | ‎`1` **Setup Iran** |
+| جهت | ‎`1` **Reverse** |
+| خانواده‌ی ترنسپورت | ‎`1` **TCP** |
+| نوع TCP | ‎`4` **TCP + PCK** |
+| آی‌پی یا دامنه‌ی ایران | **Enter** (همون که تشخیص داده) |
+| پورت تانل | ‎`443` |
+| Listen on IPv6 as well | ‎`n` |
+| پورت‌های فوروارد | ‎`1195-3000` |
+| بقیه‌ی سؤال‌ها | **Enter** برای پیش‌فرض، ‎`n` برای هر سؤال بله/خیر |
+
+جواب‌هایی که اگه ویزارد بپرسه خوبه بدونی:
+
+| سؤال | جواب | چرا |
+|---|---|---|
+| Tunnel name | Enter | فقط یه برچسبه (اسم سرویس ‎`backpack-<name>` رو می‌سازه) |
+| Security token | Enter | یه توکن ۶۴ کاراکتری خودش می‌سازه |
+| Carry UDP as well as TCP | ‎`n` | کاربرها با **TCP** وصل می‌شن. فقط اگه کاربر UDP هم داری ‎`y` بزن |
+| Enable PROXY protocol | ‎`n` | OpenVPN اون رو نمی‌فهمه و ‎`y` همه‌ی اتصال‌ها رو خراب می‌کنه |
+| سؤال‌های مخصوص PCK | Enter | پیش‌فرض‌ها خوبن |
+| Performance preset | Enter (Turbo) | پیش‌فرض پیشنهادی |
+| Fine-tune by hand | ‎`n` | پریست همه‌چی رو تنظیم کرده |
+
+آخر کار، قبل از **Create This Tunnel**، ویزارد یه **Setup Link** (‎`backpack://…`) چاپ می‌کنه. تانل رو بساز و **لینک رو کپی کن**.
+
+> متن و ترتیب سؤال‌ها بین نسخه‌های BackPack ممکنه کمی فرق کنه. قاعده همونه: Enter برای پیش‌فرض، ‎`n` برای بله/خیر، و مقدارهای جدول اول.
+
+فایروال سرور ایران (و security group ارائه‌دهنده) رو باز کن:
+
+<div dir="ltr">
+
+```bash
+sudo ufw allow 443/tcp          # پورت تانل
+sudo ufw allow 1195:3000/tcp    # پورت‌های فوروارد کاربرها
+```
+
+</div>
+
+> **رنج باید پورت کاربرها رو بپوشونه.** GassLight به کاربرها از پورت **1195** به بالا پورت می‌ده. رنجی که از عدد بالاتری شروع بشه، پورت‌های پایین‌تر رو بی‌پاسخ می‌ذاره. پورت تانل (‎`443`) رو بیرون از رنج نگه دار.
+
+---
+
+<a id="bp-4"></a>
+
+### 4. تنظیم سرور خارج
+
+<div dir="ltr">
+
+```bash
+sudo backpack
+```
+
+</div>
+
+| سؤال | جواب |
+|---|---|
+| منوی اصلی | ‎`2` **Setup Kharej** |
+| جهت | ‎`1` **Reverse** |
+| خانواده‌ی ترنسپورت | ‎`1` **TCP** |
+| روش اتصال | ‎`1` **Setup Link** |
+| ترنسپورت | ‎`4` **TCP + PCK** (همون ایران) |
+| لینک | Setup Link سرور ایران رو پیست کن |
+| بقیه‌ی سؤال‌ها | **Enter** برای پیش‌فرض، ‎`n` برای بله/خیر |
+
+«Configure optional connection settings» (پروکسی خروجی، اتصال به یه اینترفیس خاص، آدرس‌های پشتیبان) ← ‎`n`.
+
+**راه سریع‌تر:** زیر Setup Link ویزارد ایران یه خط دیگه هم چاپ می‌کنه. اون رو با root روی سرور خارج بزن: BackPack رو نصب می‌کنه، تانل رو از روی لینک می‌سازه و استارت می‌کنه:
+
+<div dir="ltr">
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/AminMGMT/BackPack/main/install.sh) link apply 'backpack://…'
+```
+
+</div>
+
+اگه BackPack از قبل نصبه: ‎`sudo backpack link apply 'backpack://…'`.
+
+---
+
+<a id="bp-5"></a>
+
+### 5. وصل کردن پنل GassLight به ایران
+
+تو پنل **اصلی** GassLight: **Advanced ← Address inside .ovpn files** ← **IP سرور ایران** رو وارد کن. از این به بعد همه‌ی فایل‌های ‎`.ovpn` (و پرتال کاربر) به ایران وصل می‌شن. کاربرها باید کانفیگشون رو دوباره دانلود کنن.
+
+موقع ساخت یا ویرایش کاربر، پروتکل **TCP** رو انتخاب کن. مطمئن شو پورت کاربر (ستون *Port*) تو رنج فوروارد هست.
+
+---
+
+<a id="bp-6"></a>
+
+### 6. چک کردن اینکه کار می‌کنه
+
+روی سرور خارج:
+
+<div dir="ltr">
+
+```bash
+sudo backpack tunnel status NAME
+```
+
+</div>
+
+باید ‎`state online` و یه ‎`last hop` بدون ‎`refused` ببینی. وقتی کلاینت وصل بشه، ‎`carried` بالا می‌ره. برای نمای زنده: ‎`sudo backpack ← 3. Manage ← Status`، و ‎`Manage ← Health Check` مشکل‌ها رو پیدا می‌کنه و راه‌حل می‌نویسه.
+
+تست نهایی: یه کلاینت OpenVPN رو به ‎`IRAN_IP:<port>` وصل کن و ببین کاربر تو پنل GassLight **آنلاین** می‌شه. قبل از اینکه همه رو منتقل کنی با یه کاربر تست کن.
+
+---
+
+<a id="bp-tips"></a>
+
+### نکته‌ها
+
+- **کاربرها روی TCP.** پورت‌های فوروارد پیش‌فرض TCP حمل می‌کنن؛ UDP یه تنظیم اضافه‌ی جدا برای هر تانل هست (*Carry UDP*) و سربار بیشتری داره. OpenVPN روی TCP داخل یه تانل TCP تو مسیر پرافت ممکنه کند بشه؛ اگه دیدی، *Carry UDP* رو ‎`y` کن و به اون کاربرها UDP بده، یا ترنسپورت دیگه‌ای امتحان کن (‎`Manage ← Link Test` مسیرت رو می‌سنجه و پیشنهاد می‌ده).
+- **دو سر باید یکی باشن:** همون ترنسپورت و همون توکن. توکن اشتباه شبیه تانل مرده دیده می‌شه.
+- **TCP + PCK** برای مسیرهاییه که TCP ساده وصل می‌شه ولی بعدش گیر می‌کنه، reset می‌شه یا throttle می‌شه. اگه روی مسیر تو جواب نداد، TCP، TCP + Stealth یا TCP Mux رو امتحان کن.
+- **انتقال‌های بزرگ گیر می‌کنه ولی تانل سالم به نظر می‌رسه؟** ‎`Manage ← Health Check` رو بزن؛ MTU مسیر رو اندازه می‌گیره.
+- **بعد از اجرای دوباره‌ی اسکریپت Nyr** ممکنه خط ‎`local` برگرده. پچ‌کننده‌ی خودکار ظرف چند ثانیه درستش می‌کنه.
+- **سخت‌گیری اختیاری:** وقتی همه‌چی کار کرد، کاربرها فقط به تانل نیاز دارن. می‌تونی پورت‌های کاربرها (‎`1195-3000`) رو از اینترنت روی سرور خارج ببندی. SSH و پورت پنل رو باز نگه دار.
+- **فایل‌های ‎`.ovpn` قدیمی** هنوز مستقیم به سرور خارج اشاره می‌کنن و تا وقتی اون پورت‌ها باز باشن کار می‌کنن.
+- لینک Setup و توکن رو محرمانه نگه دار. با ‎`Maintenance ← Backup` بکاپ بگیر.
+
+---
+
+<a id="bp-trouble"></a>
+
+### عیب‌یابی
+
+| چی می‌بینی | دلیل محتمل | راه‌حل |
+|---|---|---|
+| ‎`state online` ولی ‎`127.0.0.1:PORT … refused` | OpenVPN به یه IP bind شده (‎`local`)، یا هیچ کاربری از اون پورت استفاده نمی‌کنه | پچ‌کننده رو اجرا کن (گام 1). اگه کاربری اون پورت رو نداره، فقط یه اسکنر به رنج باز خورده و بی‌خطره |
+| ‎`state offline` | توکن یا پورت تانل اشتباهه، یا فایروال ایران بسته‌ست | توکن دو سر رو چک کن، ‎`ufw allow 443/tcp`، security group ارائه‌دهنده |
+| وصل می‌شه ولی گیر می‌کنه یا reset می‌شه | مسیر TCP ساده رو throttle می‌کنه، یا مشکل MTU | ‎`Manage ← Health Check`، ترنسپورت دیگه‌ای امتحان کن |
+| کاربرهای UDP وصل نمی‌شن | UDP حمل نمی‌شه | تانل رو با *Carry UDP* = ‎`y` ویرایش یا دوباره بساز، یا کاربرها رو TCP کن |
+| همه‌ی اتصال‌ها خراب می‌شه | PROXY protocol روشنه | خاموشش کن (‎`n`) |
+| بعضی کاربرها وصل نمی‌شن | رنج فوروارد کوچیک‌تر از پورت کاربرهاست | پورت‌های تانل رو به ‎`1195-3000` ویرایش کن |
+
+---
+
+<a id="bp-cmds"></a>
+
+### دستورها
+
+#### ‎`ovpn-autopatch-setup.sh`
+
+<div dir="ltr">
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MahanAmini/openvpn/main/backpack/ovpn-autopatch-setup.sh -o ovpn-autopatch-setup.sh && sudo bash ovpn-autopatch-setup.sh
+```
+
+</div>
+
+| دستور | کارکرد |
+|---|---|
+| ‎`sudo bash ovpn-autopatch-setup.sh` | همه‌ی ‎`/etc/openvpn/server/*.conf` رو پچ می‌کنه، فقط سرویس‌های روشنِ تغییرکرده رو ری‌استارت می‌کنه و سرویس ‎`ovpn-autopatch` رو نصب می‌کنه |
+| ‎`sudo bash ovpn-autopatch-setup.sh --no-restart` | فقط فایل‌ها رو عوض می‌کنه؛ هیچ سرویسی ری‌استارت نمی‌شه |
+| ‎`sudo bash ovpn-autopatch-setup.sh --once` | همین الان پچ می‌کنه و تموم (بدون سرویس پس‌زمینه) |
+| ‎`sudo bash ovpn-autopatch-setup.sh --uninstall` | سرویس و اسکریپت رو حذف می‌کنه (خط‌های ‎`#local` کامنت می‌مونن) |
+| ‎`sudo bash ovpn-autopatch-setup.sh --help` | راهنما |
+| ‎`sudo systemctl status ovpn-autopatch` | وضعیت سرویس |
+| ‎`sudo systemctl restart ovpn-autopatch` | ری‌استارت سرویس |
+| ‎`sudo systemctl disable --now ovpn-autopatch` | توقف و حذف از بوت |
+| ‎`journalctl -u ovpn-autopatch -n 20 --no-pager` | آخرین خط‌های لاگ |
+| ‎`grep -H '^local' /etc/openvpn/server/*.conf` | کانفیگ‌هایی که هنوز به یه IP bind هستن (خروجی خالی = درسته) |
+| ‎`sudo ss -lntp \| grep 1195` | پورت TCP کاربر روی چه آدرسی گوش می‌ده |
+| ‎`sudo ss -lnup \| grep 1195` | همین برای UDP |
+
+#### BackPack
+
+| دستور | کارکرد |
+|---|---|
+| ‎`sudo backpack` | باز کردن منو (1 Setup Iran، 2 Setup Kharej، 3 Manage، …) |
+| ‎`sudo backpack tunnel status NAME` | وضعیت، last hop، ترافیک و uptime یه تانل |
+| ‎`sudo backpack link apply '<link>'` | ساخت سمت خارجِ تانل از روی لینک Setup |
+| ‎`Manage ← Status` | جدول زنده‌ی تانل‌ها |
+| ‎`Manage ← Health Check` | پیدا کردن مشکل و چاپ راه‌حل |
+| ‎`Manage ← Link Test` | سنجش مسیر و پیشنهاد ترنسپورت |
+| ‎`Maintenance ← Backup` | بکاپ تنظیمات BackPack |
+
+بیشتر: [مستندات BackPack](https://github.com/AminMGMT/BackPack) · [آموزش TCP](https://github.com/AminMGMT/BackPack/blob/main/tutorial/tcp.md)
+
+</div>
+
+
+## تانل ساده: iran-tunnel-setup.sh
 
 این اسکریپت روی **سرور ایران** اجرا می‌شود و همه چیزی که روی پورت‌های مشخص به این سرور می‌رسد (UDP + TCP) را دست‌نخورده به سرور خارجی (جایی که OpenVPN و پنل نصب است) رد می‌کند. هیچ‌چیز اینجا رمزگشایی یا بررسی نمی‌شود؛ این سرور فقط **حامل** است. رمزنگاری بین کاربر و سرور خارجی باقی می‌ماند.
 
