@@ -25,7 +25,7 @@ GassLight turns a freshly installed Ubuntu/Debian server into a complete VPN ser
 - [Installation](#installation)
 - [BackPack Tunnel Setup](#backpack-tunnel-for-gasslight-iran--kharej)
 - [Overlay Tunnel - Advance](https://github.com/MahanAmini/openvpn/tree/main/overlay#readme)
-- [Iran Tunnel: Setup - Basic](#iran-tunnel-iran-tunnel-setupsh)
+- [Simple Tunnel: Setup - Basic](#iran-tunnel-iran-tunnel-setupsh)
 - [Exit Server: Setup Exit Servers](#exit-server-exit-server-setupsh)
 - [Proxy Routing](#proxy-routing)
 - [Features](#features)
@@ -578,7 +578,7 @@ curl -fsSL https://raw.githubusercontent.com/MahanAmini/openvpn/main/backpack/ov
 
 More: [BackPack documentation](https://github.com/AminMGMT/BackPack) · [TCP tutorial](https://github.com/AminMGMT/BackPack/blob/main/tutorial/tcp.md)
 
-## Iran Tunnel: `iran-tunnel-setup.sh`
+## Simple Tunnel: `iran-tunnel-setup.sh`
 
 This script runs on the **Iranian server** and passes everything that arrives on the specified ports (UDP + TCP) untouched to the foreign server (where OpenVPN and the panel are installed). Nothing is decrypted or inspected here; this server is just a **carrier**. Encryption remains between the user and the foreign server.
 
