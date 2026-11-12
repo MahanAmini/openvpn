@@ -127,6 +127,7 @@ ICONS = {
  "infinity": '<path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.356-8-5.096 0-5.096 8 0 8 5.223 0 7.26-8 12.356-8z"/>',
  "map": '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
  "chevron": '<polyline points="6 9 12 15 18 9"/>',
+ "send": '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
 }
 
 
@@ -450,6 +451,36 @@ TR["fa"].update({
 })
 
 
+TR["en"].update({
+  "sup_title": "Support contact (Telegram)",
+  "sup_desc": "Users see a \"Contact support\" button in their portal that opens this Telegram account. Leave it empty to hide the button.",
+  "sup_label": "Telegram ID", "sup_ph": "e.g. my_support (without @)",
+  "sup_hint": "A Telegram username: 5 to 32 letters, digits or underscores. A t.me link or @name is accepted too.",
+  "f_sup_saved": "Support Telegram ID saved", "f_sup_cleared": "Support button removed from the user portal",
+  "f_sup_bad": "Enter a valid Telegram username (5 to 32 letters, digits or _)",
+  "px_all": "Apply to all users",
+  "px_all_hint": "Off: nothing changes for users, only the users you enable in their Edit window use it. On: every user goes through this setting and the per-user switch is locked.",
+  "ex_all": "Apply to all users and their exit IPs",
+  "ex_all_hint": "Off: nothing changes for users, only the users you enable in their Edit window use the exit servers. On: every user goes through them and the per-user switch is locked.",
+  "ux_title": "Traffic routing", "ux_px": "Enable proxy routing", "ux_ex": "Enable exit servers",
+  "ux_off": "Turn it on in Advanced first.", "ux_all": "Already enabled for all users.",
+})
+TR["fa"].update({
+  "sup_title": "ارتباط با پشتیبانی (تلگرام)",
+  "sup_desc": "کاربرها توی پرتالشون یه دکمه‌ی «ارتباط با پشتیبانی» می‌بینن که این اکانت تلگرام رو باز می‌کنه. خالیش بذاری دکمه نمایش داده نمی‌شه.",
+  "sup_label": "آیدی تلگرام", "sup_ph": "مثلاً my_support (بدون @)",
+  "sup_hint": "یوزرنیم تلگرام: ۵ تا ۳۲ حرف انگلیسی، عدد یا آندرلاین. لینک t.me یا @name هم قبول می‌شه.",
+  "f_sup_saved": "آیدی تلگرام پشتیبانی ذخیره شد", "f_sup_cleared": "دکمه‌ی پشتیبانی از پرتال کاربرها حذف شد",
+  "f_sup_bad": "یه یوزرنیم تلگرام معتبر وارد کن (۵ تا ۳۲ حرف انگلیسی، عدد یا _)",
+  "px_all": "اعمال روی همه‌ی کاربرها",
+  "px_all_hint": "خاموش: هیچ تغییری برای کاربرها نمی‌کنه و فقط کاربرهایی که تو پنجره‌ی ویرایششون فعالش کردی ازش استفاده می‌کنن. روشن: همه‌ی کاربرها از این تنظیم رد می‌شن و کلید هر کاربر قفل می‌شه.",
+  "ex_all": "اعمال روی همه‌ی کاربرها و آی‌پی‌های خروجیشون",
+  "ex_all_hint": "خاموش: هیچ تغییری برای کاربرها نمی‌کنه و فقط کاربرهایی که تو پنجره‌ی ویرایششون فعالش کردی از سرورهای خروجی استفاده می‌کنن. روشن: همه‌ی کاربرها ازشون رد می‌شن و کلید هر کاربر قفل می‌شه.",
+  "ux_title": "مسیردهی ترافیک", "ux_px": "فعال‌سازی مسیردهی از پروکسی", "ux_ex": "فعال‌سازی سرورهای خروجی",
+  "ux_off": "اول تو بخش پیشرفته فعالش کن.", "ux_all": "از قبل برای همه‌ی کاربرها فعاله.",
+})
+
+
 def cur_lang():
     l = request.cookies.get("lang")
     return l if l in TR else "en"
@@ -537,6 +568,8 @@ def _read_state():
         u.setdefault("limit_daily", None)
         u.setdefault("limit_total", None)
         u.setdefault("blocked", None)
+        u.setdefault("px", False)        # proxy routing switched on for this user
+        u.setdefault("ex", False)        # exit servers switched on for this user
     st.pop("next_id", None)   # ids / ports are now reused (smallest free)
     st.pop("last_port", None)
     return st
@@ -1553,10 +1586,11 @@ PROXY_LPORT = int(os.environ.get("PROXY_REDIR_PORT", "8091"))   # local port of 
 PROXY_MAX = 500
 PLOCK = threading.RLock()
 PCFG_DEFAULT = {"enabled": False, "list": [], "dtype": "socks5", "mode": "sticky", "rotate_min": 0,
-                "fallback": False, "block_quic": True}
+                "fallback": False, "block_quic": True, "all_users": False}
 PSTATE = {}      # proxy key -> {"ok","ip","ms","checked","fails","fail_until"}
 PSTICKY = {}     # user subnet -> (proxy key, picked at)
-PSUBS = set()    # subnets of existing users (only these may use the relay)
+PSUBS = set()    # subnets of the users that go through the relay (only these may use it)
+PROUTE = {}      # user subnet -> "exit" or "proxy": which upstream list that user's traffic uses
 PRR = [0]
 PTEST = {"running": False, "done": 0, "total": 0}
 PAPPLIED = {}    # (table, chain) -> rules last written
@@ -1596,7 +1630,10 @@ def _pload():
     cfg = dict(PCFG_DEFAULT)
     try:
         with open(PROXY_FILE) as f:
-            cfg.update(json.load(f))
+            saved = json.load(f)
+        cfg.update(saved)
+        if "all_users" not in saved:        # saved by an older version: it applied to every user, keep it that way
+            cfg["all_users"] = bool(cfg.get("enabled"))
     except (OSError, ValueError):
         pass
     return cfg
@@ -1619,7 +1656,6 @@ def _prebuild():
             seen.add(p["key"])
             out.append(p)
     PLIST = out
-    _peff()
 
 
 # ---- exit servers: your own SOCKS5 servers (user/password). While enabled they replace the free-proxy pool ----
@@ -1627,18 +1663,19 @@ import ipaddress
 
 EXIT_FILE = f"{BASE}/exit_servers.json"
 EX_DEFAULT = {"enabled": False, "mode": "sticky", "rotate_min": 0, "fallback": False, "block_quic": True,
-              "next_id": 1, "servers": []}
+              "all_users": False, "next_id": 1, "servers": []}
 EXTEST = {"running": False, "done": 0, "total": 0}
 EXMAX = 50
-PPOOL = []        # proxies the relay uses right now
-PEFF = {"enabled": False, "mode": "sticky", "rotate_min": 0, "fallback": False, "block_quic": True}
 
 
 def _exload():
     cfg = json.loads(json.dumps(EX_DEFAULT))
     try:
         with open(EXIT_FILE) as f:
-            cfg.update(json.load(f))
+            saved = json.load(f)
+        cfg.update(saved)
+        if "all_users" not in saved:        # saved by an older version: it applied to every user, keep it that way
+            cfg["all_users"] = bool(cfg.get("enabled"))
     except (OSError, ValueError):
         pass
     return cfg
@@ -1653,24 +1690,31 @@ def _exlist():
     return [exit_proxy(s) for s in EX["servers"] if s.get("is_active")]
 
 
-def _peff():
-    global PPOOL
-    if EX["enabled"] and EXLIST:
-        PEFF.update(enabled=True, mode=EX["mode"], rotate_min=EX["rotate_min"], fallback=EX["fallback"],
-                    block_quic=EX["block_quic"])
-        PPOOL = EXLIST
-    else:
-        PEFF.update(enabled=PCFG["enabled"], mode=PCFG["mode"], rotate_min=PCFG["rotate_min"],
-                    fallback=PCFG["fallback"], block_quic=PCFG["block_quic"])
-        PPOOL = PLIST
-
-
 EX = _exload()
 EXLIST = _exlist()
 
 
 PCFG = _pload()
 _prebuild()
+
+
+def user_route(u):
+    """Which upstream list this user's TCP traffic goes through: "exit", "proxy" or None (direct).
+    A feature must be enabled in Advanced; then it reaches every user ("apply to all") or only the users
+    switched on in their Edit window. When both apply, exit servers win (as they always replaced the proxy list)."""
+    if EX["enabled"] and EXLIST and (EX.get("all_users") or u.get("ex")):
+        return "exit"
+    if PCFG["enabled"] and PLIST and (PCFG.get("all_users") or u.get("px")):
+        return "proxy"
+    return None
+
+
+def feature_state():
+    """For the Edit window -> (proxy, exit), each 'off' (not enabled in Advanced), 'all' (already applied to every
+    user) or 'ok' (can be switched per user)."""
+    def one(cfg):
+        return "off" if not cfg["enabled"] else ("all" if cfg.get("all_users") else "ok")
+    return one(PCFG), one(EX)
 
 
 def _recvn(s, n):
@@ -1746,17 +1790,17 @@ def proxy_mark(key, ok):
             st["fail_until"] = time.time() + min(60 * st["fails"], 600)
 
 
-def proxy_pick(sub, exclude):
+def proxy_pick(sub, exclude, pool_all, cfg):
     now = time.time()
     with PLOCK:
-        items = [p for p in PPOOL if p["key"] not in exclude]
+        items = [p for p in pool_all if p["key"] not in exclude]
         if not items:
             return None
         good = [p for p in items if PSTATE.get(p["key"], {}).get("fail_until", 0) <= now]
         pool = good or items
-        mode = PEFF["mode"]
+        mode = cfg["mode"]
         if mode == "sticky":
-            cur, rot = PSTICKY.get(sub), PEFF["rotate_min"] * 60
+            cur, rot = PSTICKY.get(sub), cfg["rotate_min"] * 60
             if cur and (not rot or now - cur[1] < rot):
                 for p in pool:
                     if p["key"] == cur[0]:
@@ -1811,11 +1855,13 @@ class _RedirHandler(socketserver.BaseRequestHandler):
             dport, dip = struct.unpack("!H", d[2:4])[0], socket.inet_ntoa(d[4:8])
         except OSError:
             return
+        mode = PROUTE.get(sub)              # "exit" / "proxy" / None (user no longer routed: go direct)
+        pool, cfg = (EXLIST, EX) if mode == "exit" else ((PLIST, PCFG) if mode == "proxy" else ([], {}))
         up = None
-        if PEFF["enabled"] and PPOOL:
+        if mode and pool:
             tried = set()
             for _ in range(4):
-                p = proxy_pick(sub, tried)
+                p = proxy_pick(sub, tried, pool, cfg)
                 if not p:
                     break
                 tried.add(p["key"])
@@ -1827,7 +1873,7 @@ class _RedirHandler(socketserver.BaseRequestHandler):
                     continue
                 except OSError:
                     proxy_mark(p["key"], False)
-        if up is None and (PEFF["fallback"] or not PEFF["enabled"]):
+        if up is None and (not mode or not pool or cfg["fallback"]):
             try:
                 up = socket.create_connection((dip, dport), timeout=8)
             except OSError:
@@ -1954,8 +2000,15 @@ def _relay_ensure(on):
 
 
 def proxy_sync_rules():
-    global PSUBS
-    if not (PEFF["enabled"] and PPOOL):
+    global PSUBS, PROUTE
+    route = {}
+    for u in load_state()["users"]:
+        m = user_route(u)
+        if m:
+            route[u["subnet"]] = m
+    PROUTE = route                             # replaced in one step: the relay never sees a half-built table
+    if not route:
+        PSUBS = set()
         if not PCLEAN[0] or PAPPLIED:          # remove leftovers once, then stay completely idle
             for t, c, par in PCHAINS:
                 _chain_apply(t, c, par, None)
@@ -1966,13 +2019,14 @@ def proxy_sync_rules():
     if not PSRV["ok"]:                         # relay could not start (port busy): never redirect users into nothing
         return
     PCLEAN[0] = False
-    subs = sorted({u["subnet"] for u in load_state()["users"]})
+    subs = sorted(route)                       # only the users that use Proxy Routing / Exit servers are redirected
     PSUBS = set(subs)
     lp = str(PROXY_LPORT)
     nat = [["-s", f"{s}.0/24", "!", "-d", f"{s}.0/24", "-p", "tcp", "-m", "addrtype", "!", "--dst-type", "LOCAL",
             "-j", "REDIRECT", "--to-ports", lp] for s in subs]
     inp = [["-s", f"{s}.0/24", "-p", "tcp", "--dport", lp, "-j", "ACCEPT"] for s in subs]
-    fw = [["-s", f"{s}.0/24", "-p", "udp", "--dport", "443", "-j", "REJECT"] for s in subs] if PEFF["block_quic"] else []
+    fw = [["-s", f"{s}.0/24", "-p", "udp", "--dport", "443", "-j", "REJECT"] for s in subs
+          if (EX if route[s] == "exit" else PCFG)["block_quic"]]
     for (t, c, par), rules in zip(PCHAINS, (nat, inp, fw)):
         _chain_apply(t, c, par, rules)
 
@@ -1994,7 +2048,7 @@ def proxy_start():
 def proxy_form():
     return {"enabled": PCFG["enabled"], "text": "\n".join(PCFG["list"]), "dtype": PCFG["dtype"], "mode": PCFG["mode"],
             "rotate_min": PCFG["rotate_min"], "fallback": PCFG["fallback"], "block_quic": PCFG["block_quic"],
-            "relay_ok": PSRV["ok"] or not PEFF["enabled"], "relay_port": PROXY_LPORT}
+            "all_users": PCFG["all_users"], "relay_ok": PSRV["ok"] or not PROUTE, "relay_port": PROXY_LPORT}
 
 
 def proxy_view():
@@ -2024,7 +2078,6 @@ def _exsave():
 def _exrebuild():
     global EXLIST
     EXLIST = _exlist()
-    _peff()
 
 
 def exit_validate(f, need_password=True):
@@ -2076,7 +2129,7 @@ def exit_rows():
 
 def exit_form():
     return {"enabled": EX["enabled"], "mode": EX["mode"], "rotate_min": EX["rotate_min"], "fallback": EX["fallback"],
-            "block_quic": EX["block_quic"], "servers": exit_rows()}
+            "block_quic": EX["block_quic"], "all_users": EX["all_users"], "servers": exit_rows()}
 
 
 def exit_view():
@@ -2143,6 +2196,35 @@ def exit_health_loop():
 
 
 # ====================== address written into downloaded .ovpn files (Advanced) ======================
+SUPPORT_FILE = f"{BASE}/support.json"
+_TG_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{4,31}$")
+
+
+def tg_clean(raw):
+    """'@name', 'name' or a t.me link -> the bare Telegram username, or None when it is not valid."""
+    v = (raw or "").strip()
+    v = re.sub(r"^(?:https?://)?(?:www\.)?(?:t\.me|telegram\.me)/", "", v, flags=re.I)
+    v = v.split("?")[0].strip("/").lstrip("@")
+    return v if _TG_RE.match(v) else None
+
+
+def support_tg():
+    try:
+        with open(SUPPORT_FILE) as f:
+            v = json.load(f).get("telegram", "")
+    except (OSError, ValueError, AttributeError):
+        return ""
+    return v if isinstance(v, str) and _TG_RE.match(v) else ""
+
+
+def save_support_tg(v):
+    tmp = SUPPORT_FILE + ".tmp"
+    with open(tmp, "w") as f:
+        json.dump({"telegram": v}, f)
+    os.chmod(tmp, 0o600)
+    os.replace(tmp, SUPPORT_FILE)
+
+
 OVPN_ADDR_FILE = f"{BASE}/ovpn_addr.json"
 
 
@@ -2275,7 +2357,8 @@ def index():
             u["left_txt"], u["pct"], u["level"] = None, 100, "ok"
             stats["unlimited"] += 1
     host = re.sub(r":\d+$", "", request.host)
-    return page(DASH_HTML, active="dash", users=users, nid=free_id(st),
+    px_state, ex_state = feature_state()
+    return page(DASH_HTML, active="dash", users=users, nid=free_id(st), px_state=px_state, ex_state=ex_state,
                 portal_base=PORTAL_BASE_URL or f"http://{host}:{PORTAL_PORT}",
                 port=next_port(st), stats=stats, ready=host_ready(), adopt=adoptable_clients(st))
 
@@ -2498,10 +2581,16 @@ def edit_user(name):
             if u.get("blocked"):
                 run(["systemctl", "disable", "--now", f"openvpn-server@{name}"])
         u["speed"], u["limit_daily"], u["limit_total"] = speed or None, daily or None, total or None
+        px_st, ex_st = feature_state()      # a switch can only change while its feature is on and not applied to everyone
+        if px_st == "ok":
+            u["px"] = f.get("px") == "1"
+        if ex_st == "ok":
+            u["ex"] = f.get("ex") == "1"
         st["users"].sort(key=lambda x: x["id"])
         save_state(st)
         apply_speed(u)
     enforce_blocks()
+    proxy_sync_rules()
     flash(tr("f_edit_ok", name=name), "ok")
     return redirect(url_for("index"))
 
@@ -2534,7 +2623,8 @@ def advanced_page():
 @login_required
 def adv_pg_account():
     session["adv_last"] = "account"
-    return page(ADV_ACC_HTML, active="adv_acc", admins=[a["username"] for a in load_auth()["users"]])
+    return page(ADV_ACC_HTML, active="adv_acc", admins=[a["username"] for a in load_auth()["users"]],
+                support=support_tg())
 
 
 @app.route("/advanced/proxy-routing")
@@ -2576,6 +2666,23 @@ def adv_account():
             save_auth(a)
             session["user"] = new_user
             flash(tr("f_acc_saved"), "ok")
+    return redirect(url_for("advanced_page"))
+
+
+@app.route("/advanced/support", methods=["POST"])
+@login_required
+def adv_support():
+    raw = request.form.get("telegram", "").strip()
+    if not raw:
+        save_support_tg("")
+        flash(tr("f_sup_cleared"), "ok")
+    else:
+        tg = tg_clean(raw)
+        if not tg:
+            flash(tr("f_sup_bad"), "err")
+        else:
+            save_support_tg(tg)
+            flash(tr("f_sup_saved"), "ok")
     return redirect(url_for("advanced_page"))
 
 
@@ -2645,7 +2752,8 @@ def adv_proxy_save():
     else:
         with PLOCK:
             PCFG.update(enabled=enabled, list=lines, dtype=dtype, mode=mode, rotate_min=rot,
-                        fallback=f.get("fallback") == "1", block_quic=f.get("block_quic") == "1")
+                        fallback=f.get("fallback") == "1", block_quic=f.get("block_quic") == "1",
+                        all_users=f.get("all_users") == "1")
             _psave()
             _prebuild()
             keys = {p["key"] for p in PLIST}
@@ -2711,7 +2819,7 @@ def adv_exit_settings():
     else:
         with PLOCK:
             EX.update(enabled=enabled, mode=mode, rotate_min=rot, fallback=f.get("fallback") == "1",
-                      block_quic=f.get("block_quic") == "1")
+                      block_quic=f.get("block_quic") == "1", all_users=f.get("all_users") == "1")
         exit_commit()
         flash(tr("f_ex_saved"), "ok")
     return redirect(url_for("advanced_page"))
@@ -2920,7 +3028,8 @@ def portal_view(token):
                    speed=u.get("speed"), created=u["created"], expires=u.get("expires"), now=time.time(),
                    blocked=u.get("blocked"), online=bool(cn.get("online")), ip=cn.get("ip"),
                    last=cn.get("last"), since=cn.get("since"), up=rec.get("up", 0), down=rec.get("down", 0),
-                   day_up=du, day_down=dd, limit_daily=u.get("limit_daily"), limit_total=u.get("limit_total"))
+                   day_up=du, day_down=dd, limit_daily=u.get("limit_daily"), limit_total=u.get("limit_total"),
+                   support_tg=support_tg())
 
 
 @app.route("/internal/portal/<token>/ovpn", methods=["POST"])
@@ -3213,6 +3322,10 @@ canvas{width:100%;height:260px;display:block}
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
 .chk{display:flex;gap:10px;align-items:flex-start;margin:12px 0 4px;font-size:13px;color:var(--tx);cursor:pointer;line-height:1.5}
 .chk input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--p1)}
+.chk input:disabled{cursor:not-allowed}.chk input:disabled+span{opacity:.55}
+.chkh{display:block;font-size:11px;color:var(--mut);margin-top:2px}
+.rt{margin-top:14px;padding-top:10px;border-top:1px solid var(--bd)}
+.rt-h{display:flex;align-items:center;gap:6px;font-size:13px;color:var(--mut)}
 .hint{color:var(--mut);font-size:12px;margin:0 0 14px;padding-inline-start:28px}
 .alist{display:flex;flex-direction:column;gap:8px}
 .arow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--inp)}
@@ -3396,7 +3509,7 @@ onsubmit='return confirm({{ t("confirm_regen_link", name=u.name)|tojson }})'><bu
 <div class="acts">
 <a class="btn sm" href="{{ url_for('download', name=u.name) }}">{{ ic('download',15) }} {{ t('dl_ovpn') }}</a>
 <button type="button" class="btn ghost sm" data-edit data-name="{{ u.name }}" data-id="{{ u.id }}" data-port="{{ u.port }}"
- data-proto="{{ u.proto }}" data-speed="{{ '%g'|format(u.speed) if u.speed else 0 }}"
+ data-proto="{{ u.proto }}" data-px="{{ 1 if u.px else 0 }}" data-ex="{{ 1 if u.ex else 0 }}" data-speed="{{ '%g'|format(u.speed) if u.speed else 0 }}"
  data-daily="{{ '%g'|format(u.limit_daily) if u.limit_daily else 0 }}" data-total="{{ '%g'|format(u.limit_total) if u.limit_total else 0 }}">{{ ic('edit',15) }} {{ t('edit_btn') }}</button>
 <form class="ext" method="post" action="{{ url_for('extend', name=u.name) }}">
 <input name="days" type="number" inputmode="numeric" min="1" placeholder="{{ t('days_ph') }}" required><button class="btn ghost sm">{{ ic('plus',15) }} {{ t('extend') }}</button></form>
@@ -3420,6 +3533,9 @@ onsubmit='return confirm({{ t("confirm_del", name=u.name)|tojson }})'><button cl
 <div><label>{{ t('edit_daily') }}</label><input name="daily" type="number" min="0" max="1000000" step="any"></div>
 <div><label>{{ t('edit_total') }}</label><input name="total" type="number" min="0" max="1000000" step="any"></div>
 </div>
+<div class="rt"><div class="rt-h">{{ ic('globe',16) }} {{ t('ux_title') }}</div>
+<label class="chk"><input type="checkbox" name="px" value="1" id="e_px" {% if px_state != 'ok' %}disabled{% endif %}><span>{{ t('ux_px') }}{% if px_state == 'off' %}<small class="chkh">{{ t('ux_off') }}</small>{% elif px_state == 'all' %}<small class="chkh">{{ t('ux_all') }}</small>{% endif %}</span></label>
+<label class="chk"><input type="checkbox" name="ex" value="1" id="e_ex" {% if ex_state != 'ok' %}disabled{% endif %}><span>{{ t('ux_ex') }}{% if ex_state == 'off' %}<small class="chkh">{{ t('ux_off') }}</small>{% elif ex_state == 'all' %}<small class="chkh">{{ t('ux_all') }}</small>{% endif %}</span></label></div>
 <div class="dwarn">{{ ic('alert',16) }}<span>{{ t('edit_warn') }}</span></div>
 <div class="dacts">
 <button class="btn">{{ ic('check',16) }} {{ t('edit_save') }}</button>
@@ -3451,11 +3567,14 @@ inp.addEventListener('input',check);
 document.querySelectorAll('.f-proto input[name=proto]').forEach(function(r){r.addEventListener('change',check)});
 })();
 (function(){
+var PXS={{ px_state|tojson }},EXS={{ ex_state|tojson }};
 var dlg=document.getElementById('ed'),form=document.getElementById('edf'),els=form.elements,rst=document.getElementById('edr'),cur='';
 document.querySelectorAll('[data-edit]').forEach(function(b){b.addEventListener('click',function(){
  var d=b.dataset;cur=d.name;form.action='/edit/'+d.name;document.getElementById('edn').textContent=d.name;
  els['id'].value=d.id;els['port'].value=d.port;els['speed'].value=d.speed;els['daily'].value=d.daily;els['total'].value=d.total;
- document.getElementById('e_'+d.proto).checked=true;rst.formAction='/reset/'+d.name;dlg.showModal();});});
+ document.getElementById('e_'+d.proto).checked=true;rst.formAction='/reset/'+d.name;
+ document.getElementById('e_px').checked=PXS==='all'||d.px==='1';document.getElementById('e_ex').checked=EXS==='all'||d.ex==='1';
+ dlg.showModal();});});
 rst.addEventListener('click',function(e){if(!confirm(I.confirm_reset.replace('{name}',cur)))e.preventDefault();});
 document.getElementById('edc').addEventListener('click',function(){dlg.close()});
 dlg.addEventListener('click',function(e){if(e.target===dlg)dlg.close()});
@@ -3654,6 +3773,13 @@ onsubmit='return confirm({{ t("adv_del_confirm", name=a)|tojson }})'><button cla
 <div><label>{{ t('adv_password') }}</label><input type="password" name="password" minlength="6" autocomplete="new-password" required></div>
 <button class="btn">{{ ic('plus',16) }} {{ t('adv_add_btn') }}</button></form></div>
 </div>
+
+<div class="card" style="margin-top:18px"><h3>{{ ic('send') }} {{ t('sup_title') }}</h3>
+<p class="muted">{{ t('sup_desc') }}</p>
+<form method="post" action="{{ url_for('adv_support') }}" class="stack">
+<div><label>{{ t('sup_label') }}</label><input name="telegram" value="{{ support }}" placeholder="{{ t('sup_ph') }}" class="mono" dir="ltr" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
+<p class="muted">{{ t('sup_hint') }}</p>
+<button class="btn">{{ ic('check',16) }} {{ t('adv_save') }}</button></form></div>
 """
 
 ADV_PX_HTML = """
@@ -3665,6 +3791,7 @@ ADV_PX_HTML = """
 {% if not px.relay_ok %}<p class="muted" style="color:var(--bad)">{{ t('px_relay_bad', port=px.relay_port) }}</p>{% endif %}
 <form method="post" action="{{ url_for('adv_proxy_save') }}" class="stack">
 <label class="chk"><input type="checkbox" name="enabled" value="1" {% if px.enabled %}checked{% endif %}><span>{{ t('px_enable') }}</span></label>
+<label class="chk"><input type="checkbox" name="all_users" value="1" {% if px.all_users %}checked{% endif %}><span>{{ t('px_all') }}<small class="chkh">{{ t('px_all_hint') }}</small></span></label>
 <div><label>{{ t('px_list') }}</label><textarea name="list" class="mono" spellcheck="false" autocomplete="off" placeholder="socks5://1.2.3.4:1080">{{ px.text }}</textarea>
 <p class="hint" style="padding-inline-start:0;margin:6px 0 0">{{ t('px_hint') }}</p></div>
 <div><label>{{ t('px_dtype') }}</label><select name="dtype">
@@ -3723,6 +3850,7 @@ ADV_EX_HTML = """
 <p class="muted">{{ t('ex_desc') }}</p>
 <form method="post" action="{{ url_for('adv_exit_settings') }}" class="stack">
 <label class="chk"><input type="checkbox" name="enabled" value="1" {% if ex.enabled %}checked{% endif %}><span>{{ t('ex_enable') }}</span></label>
+<label class="chk"><input type="checkbox" name="all_users" value="1" {% if ex.all_users %}checked{% endif %}><span>{{ t('ex_all') }}<small class="chkh">{{ t('ex_all_hint') }}</small></span></label>
 <div><label>{{ t('px_mode') }}</label><select name="mode">
 <option value="sticky" {% if ex.mode=='sticky' %}selected{% endif %}>{{ t('ex_m_sticky') }}</option>
 <option value="random" {% if ex.mode=='random' %}selected{% endif %}>{{ t('ex_m_random') }}</option>
