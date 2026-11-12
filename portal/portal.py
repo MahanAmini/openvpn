@@ -206,11 +206,27 @@ details ol{margin:10px 0 0;padding-inline-start:22px;color:var(--tx)}details li{
 .center{text-align:center;padding:40px 10px;color:var(--mut)}
 @media(max-width:520px){.tgrid{grid-template-columns:repeat(2,1fr)}.hero{flex-wrap:wrap}}
 .row .btn{flex:none;padding:12px 16px}
+.sup .muted{margin-bottom:14px}
+.tgbtn{position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px 18px;
+border-radius:14px;color:#fff;text-decoration:none;font-weight:700;font-size:15px;
+background:linear-gradient(110deg,#2aabee,#229ed9,#6d7cff,#a45cff,#2aabee);background-size:300% 100%;
+animation:tgflow 6s linear infinite,tgpulse 2.4s ease-out infinite;transition:transform .2s}
+.tgbtn::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;
+background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);transform:skewX(-20deg);animation:tgshine 3.2s ease-in-out infinite}
+.tgbtn:hover{transform:translateY(-2px) scale(1.01)}.tgbtn:active{transform:scale(.98)}
+.tgi{display:inline-flex;animation:tgfly 2.2s ease-in-out infinite}
+@keyframes tgflow{to{background-position:300% 0}}
+@keyframes tgshine{0%{left:-60%}55%,100%{left:130%}}
+@keyframes tgpulse{0%{box-shadow:0 10px 28px rgba(42,171,238,.4),0 0 0 0 rgba(42,171,238,.55)}70%,100%{box-shadow:0 10px 28px rgba(42,171,238,.4),0 0 0 16px rgba(42,171,238,0)}}
+@keyframes tgfly{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(3px,-3px) rotate(8deg)}}
+@media (prefers-reduced-motion:reduce){.tgbtn,.tgbtn::after,.tgi{animation:none}}
 </style></head><body>
 <div class="wrap">
  <div class="top"><div class="brand"><div class="logo" id="logo"></div><span>Gass<em>Light</em></span></div>
   <button class="btn ghost sm" id="lang" type="button"></button></div>
  <div id="info"><div class="center" data-i="loading">Loading...</div></div>
+ <div id="sup"></div>
+ <div id="info2"></div>
  <div class="card" id="dl" hidden>
   <h2><span data-ic="lock"></span><span data-i="cfg_title">Config file</span></h2>
   <p class="muted" data-i="cfg_desc">Type the password you received from your provider to unlock the download.</p>
@@ -241,20 +257,21 @@ var P={
  alert:'<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
  bars:'<line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/>',
  wifi:'<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>',
+ send:'<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
  inf:'<path d="M18.178 8c5.096 0 5.096 8 0 8-5.095 0-7.133-8-12.356-8-5.096 0-5.096 8 0 8 5.223 0 7.26-8 12.356-8z"/>'
 };
 function ic(n,s){return '<svg class="ic" width="'+(s||16)+'" height="'+(s||16)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+P[n]+'</svg>'}
 var T={
-en:{other:'فارسی',loading:'Loading...',cfg_title:'Config file',cfg_desc:'Type the password you received from your provider to unlock the download.',cfg_pw:'Download password',cfg_btn:'Unlock & download',
+en:{other:'فارسی',sup_title:'Contact support',sup_desc:'Press the button to reach support on Telegram for connection problems, renewals or purchases.',sup_btn:'Chat with support on Telegram',loading:'Loading...',cfg_title:'Config file',cfg_desc:'Type the password you received from your provider to unlock the download.',cfg_pw:'Download password',cfg_btn:'Unlock & download',
  how:'How to connect',how1:'Install the OpenVPN app (OpenVPN Connect for Android, iOS, Windows and macOS).',how2:'Unlock and download your config file (.ovpn) above.',how3:'Open the file with the app, or import it from the app.',how4:'Press connect. Keep the file private: it contains your personal key.',
- online:'Online',offline:'Offline',server:'Server',protocol:'Protocol',port:'Port',local_ip:'Local IP',speed:'Max speed',nospeed:'No speed limit',conn:'Connection',last:'Last connection',since:'since',never:'Never connected',
+ online:'Online',offline:'Offline',server:'Server',protocol:'Protocol',port:'Port',local_ip:'Local IP',conn:'Connection',last:'Last connection',since:'since',never:'Never connected',
  created:'Created',expires:'Expires',noexp:'No expiry',timeleft:'Time left',time:'Time',usage:'Usage',down:'Download',up:'Upload',total:'Total',today:'Today',dlim:'Daily limit',tlim:'Total limit',nolim:'No limit',
  blk_daily:'Your access is paused: the daily data limit was reached. It resets automatically at the start of the next day (server time).',blk_total:'Your access is paused: the total data limit was reached. Contact your provider.',
  left_dh:'{d}d {h}h left',left_hm:'{h}h {m}m left',left_m:'{m} min left',ago_now:'just now',ago_min:'{n} min ago',ago_h:'{n} h ago',ago_d:'{n} d ago',updated:'Updated',
  e_bad:'Wrong password. {left} attempts left.',e_bad0:'Wrong password. Too many attempts, try again later.',e_lock:'Too many attempts. Try again in {m} min.',e_nf:'This link is no longer valid.',e_down:'Service unavailable, please try again later.',e_empty:'Enter the password first.',ok:'Download started.',nf:'This link is not valid',nf2:'Ask your provider for a new link.'},
-fa:{other:'English',loading:'در حال بارگذاری...',cfg_title:'فایل کانفیگ',cfg_desc:'رمزی که از ارائه‌دهنده گرفتی رو وارد کن تا دانلود باز بشه.',cfg_pw:'رمز دانلود',cfg_btn:'باز کردن قفل و دانلود',
+fa:{other:'English',sup_title:'ارتباط با پشتیبانی',sup_desc:'با زدن این دکمه می‌تونی از طریق تلگرام با پشتیبانی جهت مشکلات اتصال، تمدید یا خرید ارتباط برقرار کنی.',sup_btn:'ارتباط با پشتیبانی در تلگرام',loading:'در حال بارگذاری...',cfg_title:'فایل کانفیگ',cfg_desc:'رمزی که از ارائه‌دهنده گرفتی رو وارد کن تا دانلود باز بشه.',cfg_pw:'رمز دانلود',cfg_btn:'باز کردن قفل و دانلود',
  how:'روش اتصال',how1:'برنامه‌ی OpenVPN رو نصب کن (OpenVPN Connect برای اندروید، iOS، ویندوز و مک).',how2:'فایل کانفیگ (.ovpn) رو از بالا باز و دانلود کن.',how3:'فایل رو با برنامه باز کن یا داخل برنامه Import کن.',how4:'روی اتصال بزن. فایل رو پیش خودت نگه دار: کلید شخصی تو داخلشه.',
- online:'آنلاین',offline:'آفلاین',server:'سرور',protocol:'پروتکل',port:'پورت',local_ip:'آی‌پی لوکال',speed:'حداکثر سرعت',nospeed:'بدون محدودیت سرعت',conn:'اتصال',last:'آخرین اتصال',since:'از',never:'هیچ‌وقت وصل نشده',
+ online:'آنلاین',offline:'آفلاین',server:'سرور',protocol:'پروتکل',port:'پورت',local_ip:'آی‌پی لوکال',conn:'اتصال',last:'آخرین اتصال',since:'از',never:'هیچ‌وقت وصل نشده',
  created:'تاریخ ساخت',expires:'انقضا',noexp:'بدون انقضا',timeleft:'زمان باقی‌مانده',time:'زمان',usage:'مصرف',down:'دانلود',up:'آپلود',total:'مجموع',today:'امروز',dlim:'سقف روزانه',tlim:'سقف کلی',nolim:'بدون سقف',
  blk_daily:'دسترسی تو متوقف شده: به سقف حجم روزانه رسیدی. با شروع روز بعد (به وقت سرور) خودکار باز می‌شه.',blk_total:'دسترسی تو متوقف شده: به سقف حجم کلی رسیدی. با ارائه‌دهنده در تماس باش.',
  left_dh:'{d} روز و {h} ساعت مانده',left_hm:'{h} ساعت و {m} دقیقه مانده',left_m:'{m} دقیقه مانده',ago_now:'همین الان',ago_min:'{n} دقیقه پیش',ago_h:'{n} ساعت پیش',ago_d:'{n} روز پیش',updated:'به‌روزرسانی',
@@ -273,16 +290,23 @@ function lim(label,used,gb){
  if(!gb)return '<div class="lim"><div class="l"><span>'+label+'</span><span>'+t('nolim')+'</span></div></div>';
  var pct=Math.min(100,used/(gb*1073741824)*100),cls=pct>=100?'bad':(pct>=80?'warn':'ok');
  return '<div class="lim"><div class="l"><span>'+label+'</span><span>'+fb(used)+' / '+gb+' GB</span></div><div class="bar"><i class="'+cls+'" style="width:'+pct.toFixed(1)+'%"></i></div></div>'}
-var D=null;
+var D=null,supKey='';
+function supCard(d){          // built only when the id or the language changes, so its animation never restarts
+ var id=d.support_tg||'';if(!/^[A-Za-z0-9_]{5,32}$/.test(id))id='';
+ var key=lang+'|'+id;if(key===supKey)return;supKey=key;
+ $('sup').innerHTML=id?'<div class="card sup"><h2>'+ic('send',18)+t('sup_title')+'</h2><p class="muted">'+t('sup_desc')+'</p>'+
+  '<a class="tgbtn" target="_blank" rel="noopener noreferrer" href="https://t.me/'+id+'"><span class="tgi">'+ic('send',20)+'</span><span>'+t('sup_btn')+'</span></a></div>':'';
+}
 function render(){
  if(!D)return;var d=D,tot=d.up+d.down,h='';
  h+='<div class="card hero"><div class="av">'+esc(d.name.charAt(0).toUpperCase())+'</div><div class="grow"><h1>'+esc(d.name)+'</h1><div class="tags"><span class="tag">'+esc(d.proto.toUpperCase())+'</span><span class="tag">'+t('port')+' '+d.port+'</span>'+
-  '<span class="tag">'+ic('zap',11)+' '+(d.speed?d.speed+' Mbps':t('nospeed'))+'</span></div></div><span class="pill '+(d.online?'on':'')+'">'+(d.online?t('online'):t('offline'))+'</span></div>';
+  '</div></div><span class="pill '+(d.online?'on':'')+'">'+(d.online?t('online'):t('offline'))+'</span></div>';
  if(d.blocked)h+='<div class="warnbox">'+ic('alert',18)+'<span>'+t(d.blocked==='daily'?'blk_daily':'blk_total')+'</span></div>';
+ $('info').innerHTML=h;supCard(d);h='';
  var last=d.online?('<b>'+t('online')+'</b> · '+t('since')+' '+dt(d.since||d.last)):(d.last?dt(d.last)+'<span class="sub">'+ago(d.last,d.now)+'</span>':t('never'));
  h+='<div class="card"><h2>'+ic('wifi',18)+t('conn')+'</h2><div class="kv">'+
   row('server',t('server'),'<span class="mono">'+esc(d.server||'—')+'</span>')+row('wifi',t('protocol'),esc(d.proto.toUpperCase())+' · '+t('port')+' <span class="mono">'+d.port+'</span>')+
-  row('server',t('local_ip'),d.ip?'<span class="mono">'+esc(d.ip)+'</span>':'—')+row('zap',t('speed'),d.speed?d.speed+' Mbps':t('nospeed'))+row('clock',t('last'),last)+'</div></div>';
+  row('server',t('local_ip'),d.ip?'<span class="mono">'+esc(d.ip)+'</span>':'—')+row('clock',t('last'),last)+'</div></div>';
  var tm='<div class="kv">'+row('cal',t('created'),ds(d.created));
  if(d.expires){var l=d.expires-d.now,tl=Math.max(d.expires-d.created,1),pc=Math.max(0,Math.min(100,l/tl*100)),cls=l<86400?'bad':(l<259200?'warn':'ok');
   tm+=row('cal',t('expires'),dt(d.expires))+row('clock',t('timeleft'),left(Math.max(l,0)))+'</div><div class="bar"><i class="'+cls+'" style="width:'+pc.toFixed(1)+'%"></i></div>'}
@@ -290,7 +314,7 @@ function render(){
  h+='<div class="card"><h2>'+ic('clock',18)+t('time')+'</h2>'+tm+'</div>';
  h+='<div class="card"><h2>'+ic('bars',18)+t('usage')+'</h2><div class="tgrid"><div class="tg">'+t('down')+'<b class="dn">'+fb(d.down)+'</b></div><div class="tg">'+t('up')+'<b class="upc">'+fb(d.up)+'</b></div>'+
   '<div class="tg">'+t('total')+'<b>'+fb(tot)+'</b></div><div class="tg">'+t('today')+'<b>'+fb(d.day_up+d.day_down)+'</b></div></div>'+lim(t('dlim'),d.day_up+d.day_down,d.limit_daily)+lim(t('tlim'),tot,d.limit_total)+'</div>';
- $('info').innerHTML=h;$('dl').hidden=false;
+ $('info2').innerHTML=h;$('dl').hidden=false;
  var n=new Date(d.now*1000);$('upd').textContent=t('updated')+' '+p2(n.getHours())+':'+p2(n.getMinutes())+':'+p2(n.getSeconds());
 }
 function statics(){
@@ -300,7 +324,7 @@ function statics(){
  $('lang').textContent=T[lang].other;$('logo').innerHTML=ic('shield',22);
  var shown=$('pw').type==='text';$('eye').innerHTML=ic(shown?'eyeoff':'eye',18);
 }
-function dead(){$('dl').hidden=true;$('info').innerHTML='<div class="card center"><h2 style="justify-content:center">'+ic('alert',20)+t('nf')+'</h2><p>'+t('nf2')+'</p></div>';clearInterval(timer)}
+function dead(){$('dl').hidden=true;$('sup').innerHTML='';$('info2').innerHTML='';supKey='';$('info').innerHTML='<div class="card center"><h2 style="justify-content:center">'+ic('alert',20)+t('nf')+'</h2><p>'+t('nf2')+'</p></div>';clearInterval(timer)}
 var timer=null,failed=false;
 function load(){
  fetch('/u/'+TOKEN+'/data',{cache:'no-store'}).then(function(r){
