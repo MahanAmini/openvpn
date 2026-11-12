@@ -344,6 +344,239 @@ Open these ports in your provider's **cloud firewall** (and in `ufw` if you use 
 
 ---
 
+# BackPack tunnel for GassLight (Iran ⇄ kharej)
+
+Connect your users to the **Iran server**, and let [BackPack](https://github.com/AminMGMT/BackPack) carry their traffic to the **main (kharej) server** that runs GassLight / OpenVPN. Users never touch the main server's IP, and the tunnel is **reverse**: the kharej server dials out to Iran, so it needs **no open inbound tunnel port**.
+
+```mermaid
+flowchart LR
+    U["👤 OpenVPN client<br/>(TCP)"] -->|"Iran IP : 1195-3000"| I["🇮🇷 Iran server<br/>BackPack"]
+    K["🌍 Kharej server<br/>BackPack"] -.->|"dials out<br/>TCP + PCK on :443"| I
+    I ==>|"carried through the tunnel"| K
+    K -->|"127.0.0.1 : user port"| O["🖥️ OpenVPN instances<br/>(GassLight)"]
+```
+
+**Contents:** [Quick path](#quick-path) · [1. Prepare the kharej](#1-prepare-the-kharej-server) · [2. Install BackPack](#2-install-backpack-on-both-servers) · [3. Iran server](#3-set-up-the-iran-server) · [4. Kharej server](#4-set-up-the-kharej-server) · [5. GassLight panel](#5-point-the-gasslight-panel-at-iran) · [6. Verify](#6-check-that-it-works) · [Tips](#tips) · [Troubleshooting](#troubleshooting) · [Commands](#commands)
+
+---
+
+## Quick path
+
+| Step | Server | What |
+|---|---|---|
+| 1 | 🌍 Kharej (main) | Run `ovpn-autopatch-setup.sh` so OpenVPN accepts tunnel connections on `127.0.0.1` |
+| 2 | 🇮🇷 + 🌍 | Install BackPack on both servers |
+| 3 | 🇮🇷 Iran | `sudo backpack` → Setup Iran (Reverse, TCP + PCK, port `443`, forwarded ports `1195-3000`) → copy the **setup link** |
+| 4 | 🌍 Kharej | `sudo backpack` → Setup Kharej → paste the link |
+| 5 | 🌍 GassLight panel | Advanced → *Address inside .ovpn files* = **Iran IP**; create users with **TCP** |
+
+> **Always set up the Iran server first.** The kharej side needs the link (address, tunnel port and token) that the Iran side generates.
+
+---
+
+## 1. Prepare the kharej server
+
+The panel builds every user's OpenVPN config from Nyr's `server.conf`, which contains `local <IP>`: OpenVPN then listens **only** on that address. BackPack hands traffic to `127.0.0.1:<port>` on the kharej, so the connection is refused. The script below comments that line out (`#local`) so OpenVPN also listens on localhost. The public address keeps working.
+
+Run on the **kharej (main) server**. It downloads the script and starts it right away:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MahanAmini/openvpn/main/backpack/ovpn-autopatch-setup.sh -o ovpn-autopatch-setup.sh && sudo bash ovpn-autopatch-setup.sh
+```
+
+It installs a small service (`ovpn-autopatch`) that also fixes configs created later. Connected users are restarted **once** (a few seconds, the client reconnects). To avoid that, add `--no-restart` (users are not touched, but a patched instance listens on localhost only after its next restart). More options at the [end of this file](#ovpn-autopatch-setupsh).
+
+Check it worked (should show `0.0.0.0:<port>`, not an IP address):
+
+```bash
+sudo ss -lntp | grep 1195      # TCP user
+sudo ss -lnup | grep 1195      # UDP user
+```
+
+---
+
+## 2. Install BackPack on both servers
+
+Run on the **Iran** and the **kharej** server (root):
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/AminMGMT/BackPack/main/install.sh | sudo bash
+```
+
+or
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/AminMGMT/BackPack/main/install.sh)
+```
+
+Then open the menu:
+
+```bash
+sudo backpack
+```
+
+PCK (the transport used here) needs **Linux and root** on both ends.
+
+---
+
+## 3. Set up the Iran server
+
+```bash
+sudo backpack
+```
+
+| Prompt | Answer |
+|---|---|
+| Main menu | `1` **Setup Iran** |
+| Direction | `1` **Reverse** |
+| Transport family | `1` **TCP** |
+| TCP variant | `4` **TCP + PCK** |
+| Iran IP or domain | **Enter** (the detected one) |
+| Tunnel port | `443` |
+| Listen on IPv6 as well | `n` |
+| Forwarded ports | `1195-3000` |
+| Everything else | **Enter** for the default, `n` for any yes/no question |
+
+Answers worth knowing, if the wizard asks them:
+
+| Prompt | Answer | Why |
+|---|---|---|
+| Tunnel name | Enter | Only a label (it names the `backpack-<name>` service) |
+| Security token | Enter | A 64-character token is generated for you |
+| Carry UDP as well as TCP | `n` | Users connect with **TCP**. Choose `y` only if you keep UDP users |
+| Enable PROXY protocol | `n` | OpenVPN does not understand it: `y` breaks every connection |
+| PCK's own questions | Enter | Defaults are fine |
+| Performance preset | Enter (Turbo) | The recommended default |
+| Fine-tune by hand | `n` | The preset already set everything |
+
+At the end, before **Create This Tunnel**, the wizard prints a **Setup Link** (`backpack://…`). Create the tunnel and **copy the link**.
+
+> The wizard's wording and order can differ slightly between BackPack versions. The rule stays the same: Enter for defaults, `n` for yes/no questions, and use the values in the first table.
+
+Open the firewall on the Iran server (and in your provider's security group):
+
+```bash
+sudo ufw allow 443/tcp          # the tunnel port
+sudo ufw allow 1195:3000/tcp    # the forwarded user ports
+```
+
+> **The range must cover your users' ports.** GassLight gives users ports starting at **1195**. A range that starts higher leaves the lower ports unreachable. Keep the tunnel port (`443`) outside the range.
+
+---
+
+## 4. Set up the kharej server
+
+```bash
+sudo backpack
+```
+
+| Prompt | Answer |
+|---|---|
+| Main menu | `2` **Setup Kharej** |
+| Direction | `1` **Reverse** |
+| Transport family | `1` **TCP** |
+| Connection method | `1` **Setup Link** |
+| Transport | `4` **TCP + PCK** (the same as Iran) |
+| Link | paste the Setup Link from the Iran server |
+| Everything else | **Enter** for the default, `n` for yes/no questions |
+
+"Configure optional connection settings" (outbound proxy, interface pinning, backup addresses) → `n`.
+
+**Faster alternative:** under the Setup Link the Iran wizard prints one more line. Run it as root on the kharej: it installs BackPack, builds the tunnel from the link and starts it:
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/AminMGMT/BackPack/main/install.sh) link apply 'backpack://…'
+```
+
+If BackPack is already installed: `sudo backpack link apply 'backpack://…'`.
+
+---
+
+## 5. Point the GassLight panel at Iran
+
+In the **main** GassLight panel: **Advanced → Address inside .ovpn files** → enter the **Iran server's IP**. From now on every `.ovpn` file (and the user portal) connects to Iran. Users need to download their config again.
+
+When you create or edit a user, choose **TCP** as the protocol. Make sure the user's port (column *Port*) is inside the forwarded range.
+
+---
+
+## 6. Check that it works
+
+On the kharej server:
+
+```bash
+sudo backpack tunnel status NAME
+```
+
+You want `state online` and a `last hop` without `refused`. After a client connects, `carried` grows. For a live view: `sudo backpack → 3. Manage → Status`, and `Manage → Health Check` finds problems and prints the fix.
+
+Final test: connect an OpenVPN client to `IRAN_IP:<port>` and check that the user shows as **online** in the GassLight panel. Test with one user before you move everyone.
+
+---
+
+## Tips
+
+- **Users on TCP.** Forwarded ports carry TCP by default; UDP is an extra per-tunnel setting (*Carry UDP*) with more overhead. OpenVPN over TCP inside a TCP tunnel can slow down on a lossy route; if you see that, choose `y` for *Carry UDP*, give those users UDP, or try another transport (`Manage → Link Test` measures your route and recommends one).
+- **Same on both ends:** the same transport and the same token. A wrong token looks like a dead tunnel.
+- **TCP + PCK** is for routes where plain TCP connects and then stalls, resets or gets throttled. If it fails on your route, try TCP, TCP + Stealth or TCP Mux.
+- **Big transfers stall while the tunnel looks healthy?** Run `Manage → Health Check`: it measures the path MTU.
+- **After running Nyr's OpenVPN script again**, the `local` line can come back. The auto patcher fixes it within seconds.
+- **Optional hardening:** once everything works, users only need the tunnel. You can close the user ports (`1195-3000`) to the internet on the kharej server. Keep SSH and the panel ports open.
+- **Old `.ovpn` files** still point to the kharej directly and keep working while those ports are open.
+- Keep the Setup Link and the token private. Back up with `Maintenance → Backup`.
+
+---
+
+## Troubleshooting
+
+| What you see | Likely cause | Fix |
+|---|---|---|
+| `state online`, but `127.0.0.1:PORT … refused` | OpenVPN is bound to one IP (`local`), or no user uses that port | Run the auto patcher (step 1). If nobody uses that port it is only a scanner hitting the open range: harmless |
+| `state offline` | Wrong token, wrong tunnel port, or the Iran firewall is closed | Check the token on both ends, `ufw allow 443/tcp`, the provider's security group |
+| Connects, then stalls or resets | The route throttles plain TCP, or an MTU problem | `Manage → Health Check`, try another transport |
+| UDP users cannot connect | UDP is not carried | Recreate/edit the tunnel with *Carry UDP* = `y`, or use TCP users |
+| Every connection breaks | PROXY protocol is on | Turn it off (`n`) |
+| Users cannot connect to some ports | The forwarded range is smaller than the users' ports | Edit the tunnel's ports to `1195-3000` |
+
+---
+
+## Commands
+
+### `ovpn-autopatch-setup.sh`
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/MahanAmini/openvpn/main/backpack/ovpn-autopatch-setup.sh -o ovpn-autopatch-setup.sh && sudo bash ovpn-autopatch-setup.sh
+```
+
+| Command | What it does |
+|---|---|
+| `sudo bash ovpn-autopatch-setup.sh` | Patches every `/etc/openvpn/server/*.conf`, restarts only the changed running instances, installs the `ovpn-autopatch` service |
+| `sudo bash ovpn-autopatch-setup.sh --no-restart` | Only edits the files; no instance is restarted |
+| `sudo bash ovpn-autopatch-setup.sh --once` | Patches now and exits (no background service) |
+| `sudo bash ovpn-autopatch-setup.sh --uninstall` | Removes the service and script (`#local` lines stay commented) |
+| `sudo bash ovpn-autopatch-setup.sh --help` | Help |
+| `sudo systemctl status ovpn-autopatch` | Service status |
+| `sudo systemctl restart ovpn-autopatch` | Restart the service |
+| `sudo systemctl disable --now ovpn-autopatch` | Stop it and remove it from boot |
+| `journalctl -u ovpn-autopatch -n 20 --no-pager` | Last log lines |
+| `grep -H '^local' /etc/openvpn/server/*.conf` | Configs still bound to one IP (empty output = fine) |
+| `sudo ss -lntp \| grep 1195` | Which address a user's TCP port listens on |
+| `sudo ss -lnup \| grep 1195` | The same for UDP |
+
+### BackPack
+
+| Command | What it does |
+|---|---|
+| `sudo backpack` | Open the menu (1 Setup Iran, 2 Setup Kharej, 3 Manage, …) |
+| `sudo backpack tunnel status NAME` | State, last hop, traffic and uptime of a tunnel |
+| `sudo backpack link apply '<link>'` | Build the kharej end of a tunnel from a setup link |
+| `Manage → Status` | Live table of the tunnels |
+| `Manage → Health Check` | Finds problems and prints the fix |
+| `Manage → Link Test` | Measures the route and recommends a transport |
+| `Maintenance → Backup` | Backups of the BackPack configuration |
+
+More: [BackPack documentation](https://github.com/AminMGMT/BackPack) · [TCP tutorial](https://github.com/AminMGMT/BackPack/blob/main/tutorial/tcp.md)
+
 ## Iran Tunnel: `iran-tunnel-setup.sh`
 
 This script runs on the **Iranian server** and passes everything that arrives on the specified ports (UDP + TCP) untouched to the foreign server (where OpenVPN and the panel are installed). Nothing is decrypted or inspected here; this server is just a **carrier**. Encryption remains between the user and the foreign server.
