@@ -1,17 +1,4 @@
 #!/usr/bin/env python3
-"""GassLight Tunnel - control panel for the IRAN server (Flask, single file).
-
-What it does
-  * Users connect (OpenVPN, UDP or TCP) to this Iranian server on their own port.
-  * An Xray instance (managed by this panel) carries every connection, wrapped in VLESS + REALITY, to ONE of
-    several foreign "relay" servers, which pass it on to the main OpenVPN / GassLight server.
-  * Every few minutes (always under 20) the panel picks another healthy relay at random and switches to it.
-    A relay that stops answering is dropped immediately.
-
-Requires: python3-flask, root, the Xray binary (see overlay-panel-setup.sh).
-Env: PANEL_PASSWORD (needed once, creates the first admin), TUNNEL_PORT (default 8090), TUNNEL_HOST (0.0.0.0),
-     TUNNEL_DATA (/opt/gl-tunnel), XRAY_BIN (/usr/local/bin/xray)
-"""
 import ipaddress
 import json
 import os
@@ -47,14 +34,14 @@ XRAY_DIR = f"{BASE}/xray"
 XRAY_CONF = f"{XRAY_DIR}/config.json"
 XRAY_LOG = f"{XRAY_DIR}/xray.log"
 XRAY_BIN = os.environ.get("XRAY_BIN", "/usr/local/bin/xray")
-XRAY_MODE = os.environ.get("XRAY_MODE", "systemd")        # "systemd" (production) or "process" (no systemd / tests)
+XRAY_MODE = os.environ.get("XRAY_MODE", "systemd")
 XRAY_SERVICE = os.environ.get("XRAY_SERVICE", "gl-xray")
 PASSWORD = os.environ.get("PANEL_PASSWORD", "")
 HOST = os.environ.get("TUNNEL_HOST", "0.0.0.0")
 PORT = int(os.environ.get("TUNNEL_PORT", "8090"))
-PROBE_LOCAL = int(os.environ.get("TUNNEL_PROBE_LOCAL", "18999"))   # loopback-only inbound used for the end-to-end path check
-ROT_UNIT = int(os.environ.get("TUNNEL_ROT_UNIT", "60"))            # seconds per "minute" (only lowered by tests)
-HEALTH_EVERY = int(os.environ.get("TUNNEL_HEALTH_EVERY", "30"))    # seconds between relay / path checks
+PROBE_LOCAL = int(os.environ.get("TUNNEL_PROBE_LOCAL", "18999"))
+ROT_UNIT = int(os.environ.get("TUNNEL_ROT_UNIT", "60"))
+HEALTH_EVERY = int(os.environ.get("TUNNEL_HEALTH_EVERY", "30"))
 USER_RE = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
 HOST_RE = re.compile(r"^[A-Za-z0-9.\-]{1,253}$")
 UUID_RE = re.compile(r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$")
@@ -64,11 +51,11 @@ FINGERPRINTS = ("chrome", "firefox", "safari", "ios", "android", "edge", "360", 
 FLOWS = ("xtls-rprx-vision", "")
 MAX_PORTS = 500
 MAX_RELAYS = 50
-ROT_MAX_MIN = 19            # hard rule: the route always changes in under 20 minutes
-LOCK = threading.RLock()    # settings / relays / state
-SWLOCK = threading.RLock()  # one Xray (re)configuration at a time
-SLOCK = threading.Lock()    # in-memory network / system samples
-FAILS = {}                  # login ip -> (count, locked until)
+ROT_MAX_MIN = 19
+LOCK = threading.RLock()
+SWLOCK = threading.RLock()
+SLOCK = threading.Lock()
+FAILS = {}
 RNG = random.SystemRandom()
 
 os.makedirs(XRAY_DIR, mode=0o700, exist_ok=True)
@@ -146,7 +133,6 @@ def icon(name, size=18, cls=""):
                   f'stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" '
                   f'aria-hidden="true">{ICONS[name]}</svg>')
 
-# ====================== i18n (default: English) ======================
 TR = {
  "en": {
   "lang_name": "فارسی",
@@ -553,7 +539,6 @@ def set_lang(code):
     return resp
 
 
-# ====================== storage ======================
 def jload(path, default):
     try:
         with open(path) as f:
@@ -577,7 +562,7 @@ CFG.update(jload(CFG_FILE, {}))
 RELAYS = jload(RELAYS_FILE, {"next_id": 1, "relays": []})
 STATE = {"current": None, "since": 0, "next_switch": 0, "history": []}
 STATE.update(jload(STATE_FILE, {}))
-RSTATE = {}     # relay id -> {"ok","ms","checked","fails","bad_until"}
+RSTATE = {}
 RT = {"probe": {"ok": None, "ms": None, "ts": 0}, "probe_fails": 0, "skipped": [], "problem": None,
       "last_health": 0, "conns": (0, 0), "stopped_seen": False, "retry_at": 0}
 WAKE = threading.Event()
@@ -599,7 +584,6 @@ def get_relay(rid):
     return next((r for r in RELAYS["relays"] if r["id"] == rid), None)
 
 
-# ====================== validation ======================
 def valid_host(h):
     if not HOST_RE.match(h or ""):
         return False
@@ -616,7 +600,6 @@ def reserved_ports():
 
 
 def parse_ports(text):
-    """'1195-1300, 2000' -> sorted list. ValueError carries a short reason."""
     out = set()
     for part in re.split(r"[,\s]+", (text or "").strip()):
         if not part:
@@ -658,7 +641,6 @@ def ranges_text(ports):
 
 
 def relay_clean(d):
-    """Validate a relay dict from a form / link. -> (clean, error_key)"""
     host = (d.get("host") or "").strip()
     if not valid_host(host):
         return None, "f_rl_bad_host"
@@ -692,7 +674,6 @@ def relay_clean(d):
 
 
 def parse_vless(link):
-    """vless://UUID@host:port?security=reality&sni=..&pbk=..&sid=..&fp=..&flow=..#name -> dict (ValueError if not REALITY/TCP)"""
     try:
         u = urlsplit((link or "").strip())
         port = u.port or 443
@@ -708,9 +689,7 @@ def parse_vless(link):
             "fingerprint": q.get("fp", "chrome"), "flow": q.get("flow", "xtls-rprx-vision")}
 
 
-# ====================== Xray configuration ======================
 def build_config(relay, ports):
-    """Iran side: one dokodemo-door per carried port (TCP+UDP) -> the same port on the main server, through the relay."""
     main = CFG["main_host"]
     inbounds = [{"tag": f"in-{p}", "listen": CFG["listen"], "port": p, "protocol": "dokodemo-door",
                  "settings": {"address": main, "port": p, "network": "tcp,udp"}} for p in ports]
@@ -743,7 +722,6 @@ def sh(cmd, timeout=15):
 
 
 class XrayCtl:
-    """Start / stop / watch the Xray that carries the tunnel (systemd service, or a plain child process)."""
     proc = None
 
     def start_or_restart(self):
@@ -796,8 +774,6 @@ FW_DONE = set()
 
 
 def ports_busy_by_others(ports, listen="0.0.0.0"):
-    """Carried ports already used by some other program on the address we listen on (our own Xray is ignored).
-    They are skipped, not fatal."""
     want, busy = set(ports), set()
     for line in sh(["ss", "-H", "-lntup"], 8).stdout.splitlines():
         p = line.split()
@@ -813,7 +789,6 @@ def ports_busy_by_others(ports, listen="0.0.0.0"):
 
 
 def fw_open(ports):
-    """Best effort: when ufw is active, open the carried ports (the panel's own port too)."""
     new = set(ports) - FW_DONE
     if not new or "Status: active" not in sh(["ufw", "status"], 8).stdout:
         FW_DONE.update(new)
@@ -826,7 +801,6 @@ def fw_open(ports):
 
 
 def apply_xray(relay):
-    """Write the config for `relay`, test it, (re)start Xray. -> (ok, message)"""
     with SWLOCK:
         try:
             ports = parse_ports(CFG["ports"])
@@ -839,7 +813,7 @@ def apply_xray(relay):
             return False, "no usable port"
         if not os.path.exists(XRAY_BIN):
             return False, f"xray not found at {XRAY_BIN}"
-        tmp = f"{XRAY_DIR}/config.new.json"          # Xray picks the format from the extension
+        tmp = f"{XRAY_DIR}/config.new.json"
         with open(tmp, "w") as f:
             json.dump(build_config(relay, eff), f, indent=1)
         os.chmod(tmp, 0o600)
@@ -855,7 +829,7 @@ def apply_xray(relay):
         ok = XCTL.start_or_restart()
         time.sleep(0.8)
         if not ok or not XCTL.active():
-            if had:                                   # roll back to the config that was working
+            if had:
                 shutil.copy2(prev, XRAY_CONF)
                 XCTL.start_or_restart()
             return False, "xray did not start"
@@ -863,7 +837,6 @@ def apply_xray(relay):
         return True, ""
 
 
-# ====================== health / path check ======================
 def tcp_ms(host, port, timeout=4):
     t0 = time.time()
     try:
@@ -874,7 +847,6 @@ def tcp_ms(host, port, timeout=4):
 
 
 def health_all():
-    """TCP reachability of every relay (latency + consecutive failures)."""
     relays = list(RELAYS["relays"])
     if not relays:
         return
@@ -893,7 +865,6 @@ def probe_enabled():
 
 
 def probe_once(port=None, wait=3.5):
-    """End-to-end check: open a connection through a probe inbound -> relay -> main server."""
     t0 = time.time()
     try:
         s = socket.create_connection(("127.0.0.1", port or PROBE_LOCAL), timeout=3)
@@ -905,7 +876,7 @@ def probe_once(port=None, wait=3.5):
         try:
             d = s.recv(256)
         except socket.timeout:
-            return True, None                         # open but silent: the path works
+            return True, None
         return (True, int((time.time() - t0) * 1000)) if d else (False, None)
     except OSError:
         return False, None
@@ -921,8 +892,7 @@ def probe_record(wait=3.5):
 
 
 def verify_path():
-    """After a switch: give the new route a few seconds to come up."""
-    for i in range(3):                                # a dead route is detected in about 8 s, not 20+
+    for i in range(3):
         if probe_record(2.5):
             return True
         if i < 2:
@@ -931,11 +901,9 @@ def verify_path():
 
 
 def preflight(relay):
-    """Test a relay END-TO-END before any user is moved onto it: a temporary Xray (loopback only) opens
-    REALITY to the relay and reaches the main server's check port. A relay that fails here is never used."""
     if not (probe_enabled() and os.path.exists(XRAY_BIN)):
-        return True                                   # no way to test without a check port: accept
-    with socket.socket() as tmp:                      # a free loopback port: never talk to a stale process by mistake
+        return True
+    with socket.socket() as tmp:
         tmp.bind(("127.0.0.1", 0))
         port = tmp.getsockname()[1]
     path = f"{XRAY_DIR}/preflight.{port}.json"
@@ -974,7 +942,6 @@ def preflight(relay):
                 p.wait(3)
 
 
-# ====================== rotation ======================
 def bad_now(rid):
     return RSTATE.get(rid, {}).get("bad_until", 0) > time.time()
 
@@ -1005,13 +972,12 @@ def history_add(entry):
 
 
 def switch_to(rid, reason):
-    """Move the tunnel to relay `rid`. -> True on success."""
     with SWLOCK:
         relay = get_relay(rid)
         if not relay:
             return False
         prev = STATE["current"]
-        if rid != prev and not preflight(relay):         # never move users onto an unverified relay
+        if rid != prev and not preflight(relay):
             mark_bad(rid, 600)
             with LOCK:
                 history_add({"ts": time.time(), "from": prev, "to": rid, "reason": reason, "ok": False,
@@ -1027,7 +993,7 @@ def switch_to(rid, reason):
                 schedule_next()
             RT["problem"] = None
             if probe_enabled() and not verify_path():
-                mark_bad(rid, 600)                    # the engine fails over on its next tick
+                mark_bad(rid, 600)
                 entry.update(ok=False, msg="path check failed")
             else:
                 mark_ok = RSTATE.setdefault(rid, {"ok": None, "ms": None, "checked": 0, "fails": 0, "bad_until": 0})
@@ -1036,7 +1002,7 @@ def switch_to(rid, reason):
             mark_bad(rid, 300)
             RT["problem"] = msg
         if not ok:
-            RT["retry_at"] = time.time() + 8              # Xray itself failed: do not hammer it
+            RT["retry_at"] = time.time() + 8
         with LOCK:
             history_add(entry)
             save_state()
@@ -1044,7 +1010,6 @@ def switch_to(rid, reason):
 
 
 def prerequisites():
-    """-> list of missing things (translation keys) needed before the tunnel can run."""
     miss = []
     if not os.path.exists(XRAY_BIN):
         miss.append("xray")
@@ -1075,18 +1040,18 @@ def engine_tick():
             probe_record()
         c = STATE["current"]
         if c and (RSTATE.get(c, {}).get("fails", 0) > 0 or RT["probe_fails"] > 0):
-            RT["last_health"] = now - HEALTH_EVERY + min(5, HEALTH_EVERY)    # something looks wrong: re-check in 5 s, not 30
+            RT["last_health"] = now - HEALTH_EVERY + min(5, HEALTH_EVERY)
     if now < RT["retry_at"]:
         return
     cur = STATE["current"]
     r = get_relay(cur) if cur else None
-    if not r or not r.get("active") or not XCTL.active():             # nothing running yet / Xray died / relay removed
+    if not r or not r.get("active") or not XCTL.active():
         rid = cur if (r and r.get("active") and usable(r)) else pick()
         if rid:
             switch_to(rid, "start")
         return
     st = RSTATE.get(cur, {})
-    if st.get("fails", 0) >= 2 or bad_now(cur) or RT["probe_fails"] >= 3:   # current route is dead -> leave it now
+    if st.get("fails", 0) >= 2 or bad_now(cur) or RT["probe_fails"] >= 3:
         if RT["probe_fails"] >= 3:
             mark_bad(cur, 600)
         nxt = pick(exclude={cur})
@@ -1104,7 +1069,7 @@ def engine_tick():
 
 
 def engine():
-    if STATE["next_switch"] < time.time():               # panel was down: do not switch the instant it comes back
+    if STATE["next_switch"] < time.time():
         schedule_next()
         STATE["next_switch"] = time.time() + RNG.uniform(30, 120)
     while True:
@@ -1112,7 +1077,7 @@ def engine():
         WAKE.clear()
         try:
             engine_tick()
-        except Exception as e:  # noqa
+        except Exception as e:
             print("engine error:", e, flush=True)
 
 
@@ -1121,7 +1086,6 @@ def poke():
 
 
 def count_conns():
-    """Established TCP connections from this server to the active relay (how many tunnels are open)."""
     r = get_relay(STATE["current"]) if STATE["current"] else None
     if not r:
         return 0
@@ -1162,11 +1126,8 @@ def status_json():
                 "ports": eff, "main": CFG["main_host"], "conns": count_conns() if cur else 0}
 
 
-# ====================== network / system sampling (same as the main panel) ======================
-
-
 NET = {"iface": None, "last": None, "cur": (0, 0), "rate": (0.0, 0.0), "hist": deque(maxlen=180)}
-NET_DAYS = {}   # "YYYY-MM-DD" -> [rx, tx]
+NET_DAYS = {}
 
 
 def load_traffic():
@@ -1181,7 +1142,7 @@ def save_traffic():
 
 
 def default_iface():
-    try:  # /proc/net/route: the default route has destination 00000000
+    try:
         with open("/proc/net/route") as f:
             for line in f.readlines()[1:]:
                 p = line.split()
@@ -1243,7 +1204,7 @@ def read_cpu_times():
     try:
         with open("/proc/stat") as f:
             p = [int(x) for x in f.readline().split()[1:9]]
-        return sum(p), p[3] + p[4]          # total, idle (idle + iowait)
+        return sum(p), p[3] + p[4]
     except (OSError, ValueError, IndexError):
         return None
 
@@ -1294,12 +1255,11 @@ def sampler():
             if now - last_save >= 30:
                 save_traffic()
                 last_save = now
-        except Exception as e:  # noqa
+        except Exception as e:
             print("sampler error:", e, flush=True)
         tick += 1
 
 
-# ====================== auth (same accounts system as the main panel) ======================
 DUMMY_HASH = generate_password_hash("not-a-real-password")
 
 
@@ -1308,7 +1268,7 @@ def save_auth(a):
 
 
 def load_auth():
-    if not os.path.exists(AUTH_FILE):  # first run: admin + PANEL_PASSWORD
+    if not os.path.exists(AUTH_FILE):
         save_auth({"users": [{"username": "gasslight", "hash": generate_password_hash(PASSWORD)}]})
     with open(AUTH_FILE) as f:
         return json.load(f)
@@ -1360,7 +1320,6 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ====================== pages ======================
 def page(body, **ctx):
     ctx.update(css=CSS, app=APP_NAME)
     return render_template_string(TOP + body + BOTTOM, **ctx)
@@ -1442,7 +1401,6 @@ def api_net():
                             "mem": SYS.get("mem") or {}, "hist": list(SYS["hist"])})
 
 
-# ====================== tunnel actions ======================
 def back(to="index"):
     return redirect(url_for(to))
 
@@ -1493,7 +1451,6 @@ def tunnel_rotation():
     return back()
 
 
-# ====================== relays ======================
 def relay_add(clean):
     with LOCK:
         if len(RELAYS["relays"]) >= MAX_RELAYS:
@@ -1538,7 +1495,6 @@ def relay_add_manual():
 
 
 def relay_changed(rid):
-    """The relay in use was edited / disabled / removed -> re-apply or leave it."""
     if STATE["current"] == rid and CFG["enabled"]:
         r = get_relay(rid)
         if r and r.get("active"):
@@ -1622,7 +1578,6 @@ def relays_test():
     return back("relays_page")
 
 
-# ====================== settings ======================
 @app.route("/settings/save", methods=["POST"])
 @login_required
 def settings_save():
@@ -1658,7 +1613,7 @@ def settings_save():
         schedule_next()
     flash(tr("f_se_saved"), "ok")
     if CFG["enabled"] and not prerequisites() and STATE["current"]:
-        if not switch_to(STATE["current"], "manual"):            # new ports / main server: re-apply now
+        if not switch_to(STATE["current"], "manual"):
             flash(tr("f_se_failed", msg=RT["problem"] or "path check failed"), "err")
     poke()
     return back("settings_page")
@@ -1740,7 +1695,6 @@ def set_user_delete(uname):
     return back("settings_page")
 
 
-# ====================== UI ======================
 CSS = """
 <style>
 :root{--bg:#0a0e1f;--card:rgba(255,255,255,.055);--bd:rgba(255,255,255,.1);--tx:#eaeefb;--mut:#8f9bbd;
@@ -1758,13 +1712,11 @@ a{color:inherit}
 .ic{flex:none;vertical-align:-3px}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;direction:ltr;unicode-bidi:isolate}
 .grow{flex:1;min-width:0}
-/* ---------- brand / logo ---------- */
 .brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800;color:var(--tx);text-decoration:none}
 .brand em{font-style:normal;background:linear-gradient(135deg,var(--p1),var(--p2));-webkit-background-clip:text;
 background-clip:text;color:transparent}
 .logo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;color:#fff;
 background:linear-gradient(135deg,var(--p1),var(--p2));box-shadow:0 8px 24px rgba(109,124,255,.4)}
-/* ---------- sidebar (desktop) / dropdown (mobile) ---------- */
 .side{position:fixed;top:0;right:0;bottom:0;width:var(--side);display:flex;flex-direction:column;gap:6px;
 padding:18px 14px;background:var(--nav);border-left:1px solid var(--bd);z-index:30;overflow-y:auto;
 backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
@@ -1786,7 +1738,6 @@ display:flex;flex-direction:column;align-items:center;justify-content:center;gap
 .burger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 .wrap{margin-right:var(--side);padding:26px 28px 60px}
 .main{max-width:1000px;margin:0 auto}
-/* ---------- components ---------- */
 .card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:20px;margin-bottom:18px;
 backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .card h3{margin:0 0 14px;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -1839,7 +1790,6 @@ background:var(--inp);color:var(--mut);border:1px solid var(--bd)}
 .sub{display:block;font-size:11px;color:var(--mut);font-weight:400}
 .av{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-weight:700;font-size:18px;
 background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
-/* ---------- create form ---------- */
 .form{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;align-items:start}
 .f-id{grid-column:span 2}.f-name{grid-column:span 4}.f-proto{grid-column:span 2}.f-port{grid-column:span 4}
 .f-q{grid-column:span 3}.f-btn{grid-column:1/-1}.f-btn .btn{width:100%;padding:12px}
@@ -1850,7 +1800,6 @@ background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
 .seg label{flex:1;margin:0;cursor:pointer}.seg input{display:none}
 .seg span{display:block;text-align:center;padding:8px 6px;border-radius:9px;font-size:13px;font-weight:700;color:var(--mut);transition:.2s}
 .seg input:checked+span{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;box-shadow:0 4px 12px rgba(109,124,255,.35)}
-/* ---------- user cards ---------- */
 .search{margin-bottom:14px}
 .users,.ugrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 .user,.ucard{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;transition:.2s;min-width:0}
@@ -1864,7 +1813,6 @@ background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
 .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .acts form{display:flex;gap:6px;margin:0}.acts input{width:76px;padding:8px 10px;border-radius:10px;font-size:13px}
 .empty{text-align:center;color:var(--mut);padding:30px}
-/* ---------- portal link / download password ---------- */
 .portal{display:flex;flex-direction:column;gap:8px;margin:0 0 12px;padding:10px 12px;border-radius:12px;background:var(--inp)}
 .prow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .plabel{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);margin-inline-end:auto}
@@ -1872,7 +1820,6 @@ background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
 .portal form{margin:0;display:flex}
 .btn.ico{padding:8px 10px}
 .btn.done{background:rgba(52,211,153,.18)!important;color:var(--ok)!important;border-color:rgba(52,211,153,.4)!important}
-/* ---------- usage cards ---------- */
 .kv{display:flex;flex-direction:column;gap:8px;margin:4px 0 14px;padding:10px 12px;border-radius:12px;background:var(--inp)}
 .kv div{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px}
 .kv span.k{color:var(--mut);display:flex;align-items:center;gap:6px;white-space:nowrap}
@@ -1883,7 +1830,6 @@ background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
 .lim{font-size:12px;color:var(--mut);margin-bottom:10px}
 .lim .l{display:flex;justify-content:space-between;gap:8px}
 .live{font-size:12px;display:flex;gap:14px;margin-top:10px}
-/* ---------- network ---------- */
 .speeds{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
 .speed{margin:0;text-align:center;direction:ltr}
 .speed>span{color:var(--mut);font-size:13px;display:inline-flex;align-items:center;gap:6px}
@@ -1896,7 +1842,6 @@ background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
 canvas{width:100%;height:260px;display:block}
 .legend{display:flex;gap:18px;justify-content:center;font-size:12px;color:var(--mut);margin-top:8px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:6px}
-/* ---------- backup / advanced ---------- */
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
 .chk{display:flex;gap:10px;align-items:flex-start;margin:12px 0 4px;font-size:13px;color:var(--tx);cursor:pointer;line-height:1.5}
 .chk input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--p1)}
@@ -1904,7 +1849,6 @@ canvas{width:100%;height:260px;display:block}
 .alist{display:flex;flex-direction:column;gap:8px}
 .arow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--inp)}
 .arow>span{display:flex;align-items:center;gap:8px;min-width:0;word-break:break-all}
-/* ---------- dialog ---------- */
 .dlg{border:1px solid var(--bd);border-radius:20px;background:var(--navs);color:var(--tx);padding:0;
 width:calc(100% - 28px);max-width:540px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
 .dlg::backdrop{background:rgba(5,8,20,.6);backdrop-filter:blur(4px)}
@@ -1913,7 +1857,6 @@ width:calc(100% - 28px);max-width:540px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.span2{grid-column:1/-1}
 .dwarn{display:flex;gap:8px;align-items:flex-start;margin:14px 0;font-size:12px;color:var(--warn);line-height:1.6}
 .dacts{display:flex;gap:8px;flex-wrap:wrap}.dacts .btn{flex:1 1 auto}
-/* ---------- responsive ---------- */
 @media(max-width:1180px){.speeds{grid-template-columns:1fr 1fr}}
 @media(max-width:980px){
  .topbar{display:flex;position:sticky;top:0;z-index:40;height:62px;align-items:center;justify-content:space-between;
@@ -1953,7 +1896,6 @@ width:calc(100% - 28px);max-width:540px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
 }
 @media(max-width:480px){.grid2{grid-template-columns:1fr}}
 
-/* ---------- tunnel panel additions (new elements only) ---------- */
 select,textarea{width:100%;padding:11px 13px;border-radius:12px;border:1px solid var(--bd);background:var(--inp);color:var(--tx);font:inherit;outline:none;transition:.2s}
 select:focus,textarea:focus{border-color:var(--p1);box-shadow:0 0 0 3px rgba(109,124,255,.25)}
 textarea{resize:vertical;min-height:90px;font-size:13px;direction:ltr}
