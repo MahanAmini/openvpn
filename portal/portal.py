@@ -1,22 +1,4 @@
 #!/usr/bin/env python3
-"""GassLight user portal — a small, separate web page for VPN users.
-
-Each user gets a private link  http://SERVER:8089/u/<token>  (copied from the panel).
-The page shows that user's own details (status, time left, usage, limits) and a locked
-download button for the .ovpn file: the user must type the download password the admin
-sent them.
-
-This file holds no data and no secrets of its own. It only asks the panel (127.0.0.1)
-through a small internal API, using a shared secret file that the panel creates.
-It can run as an unprivileged user (see the systemd unit in the instructions).
-
-Env (all optional):
-  PORTAL_PORT        port to listen on                       (default 8089)
-  PORTAL_HOST        address to bind                         (default 0.0.0.0)
-  PANEL_URL          where the panel listens                 (default http://127.0.0.1:8088)
-  PORTAL_SECRET_FILE shared secret file                      (default /opt/ovpn-panel/portal.secret)
-  TRUST_PROXY=1      take the visitor IP from X-Forwarded-For (only behind your own reverse proxy)
-"""
 import json
 import os
 import re
@@ -37,7 +19,7 @@ TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
 
 def read_secret():
     cands = []
-    if os.environ.get("CREDENTIALS_DIRECTORY"):          # systemd LoadCredential=
+    if os.environ.get("CREDENTIALS_DIRECTORY"):
         cands.append(os.path.join(os.environ["CREDENTIALS_DIRECTORY"], "portal.secret"))
     cands.append(os.environ.get("PORTAL_SECRET_FILE", "/opt/ovpn-panel/portal.secret"))
     for p in cands:
@@ -291,7 +273,7 @@ function lim(label,used,gb){
  var pct=Math.min(100,used/(gb*1073741824)*100),cls=pct>=100?'bad':(pct>=80?'warn':'ok');
  return '<div class="lim"><div class="l"><span>'+label+'</span><span>'+fb(used)+' / '+gb+' GB</span></div><div class="bar"><i class="'+cls+'" style="width:'+pct.toFixed(1)+'%"></i></div></div>'}
 var D=null,supKey='';
-function supCard(d){          // built only when the id or the language changes, so its animation never restarts
+function supCard(d){
  var id=d.support_tg||'';if(!/^[A-Za-z0-9_]{5,32}$/.test(id))id='';
  var key=lang+'|'+id;if(key===supKey)return;supKey=key;
  $('sup').innerHTML=id?'<div class="card sup"><h2>'+ic('send',18)+t('sup_title')+'</h2><p class="muted">'+t('sup_desc')+'</p>'+

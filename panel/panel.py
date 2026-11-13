@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""GassLight - OpenVPN multi-instance panel (Flask, single file).
-
-Requires: python3-flask, root, and the Nyr openvpn-install script already
-installed on the host (/etc/openvpn/server/server.conf must exist).
-Env: PANEL_PASSWORD (required), PANEL_PORT (default 8088), PANEL_HOST (default 0.0.0.0)
-"""
 import hashlib
 import hmac
 import io
@@ -38,7 +32,7 @@ BACKUP_DIR = f"{BASE}/backups"
 AUTH_FILE = f"{BASE}/auth.json"
 SETTINGS_FILE = f"{BASE}/settings.json"
 STATUS_DIR = os.environ.get("OVPN_STATUS_DIR", "/run/openvpn-server")
-ACTIVE_WINDOW = 45   # seconds without incoming bytes from the client => shown as offline
+ACTIVE_WINDOW = 45
 SECRET_FILE = f"{BASE}/secret.key"
 SERVER_DIR = os.environ.get("OVPN_SERVER_DIR", "/etc/openvpn/server")
 ED = f"{SERVER_DIR}/easy-rsa"
@@ -46,15 +40,15 @@ PASSWORD = os.environ.get("PANEL_PASSWORD", "")
 HOST = os.environ.get("PANEL_HOST", "0.0.0.0")
 PORT = int(os.environ.get("PANEL_PORT", "8088"))
 NAME_RE = re.compile(r"^[A-Za-z0-9_-]{1,32}$")
-RESERVED_PORTS = {1194, 22}  # main OpenVPN panel + SSH
+RESERVED_PORTS = {1194, 22}
 GB = 1024 ** 3
-PORTAL_PORT = int(os.environ.get("PORTAL_PORT", "8089"))          # where portal.py listens
-PORTAL_BASE_URL = os.environ.get("PORTAL_BASE_URL", "").rstrip("/")  # optional, e.g. https://vpn.example.com
+PORTAL_PORT = int(os.environ.get("PORTAL_PORT", "8089"))
+PORTAL_BASE_URL = os.environ.get("PORTAL_BASE_URL", "").rstrip("/")
 PORTAL_SECRET_FILE = f"{BASE}/portal.secret"
 USER_RE = re.compile(r"^[A-Za-z0-9_.-]{3,32}$")
-LOCK = threading.RLock()     # users.json read-modify-write
-SLOCK = threading.Lock()     # in-memory usage / network state
-FAILS = {}  # ip -> (count, until)
+LOCK = threading.RLock()
+SLOCK = threading.Lock()
+FAILS = {}
 
 os.makedirs(OVPN_DIR, mode=0o700, exist_ok=True)
 os.makedirs(BACKUP_DIR, mode=0o700, exist_ok=True)
@@ -64,7 +58,7 @@ if not os.path.exists(SECRET_FILE):
     with open(SECRET_FILE, "w") as f:
         f.write(secrets.token_hex(32))
     os.chmod(SECRET_FILE, 0o600)
-if not os.path.exists(PORTAL_SECRET_FILE):   # shared secret between the panel and portal.py
+if not os.path.exists(PORTAL_SECRET_FILE):
     with open(PORTAL_SECRET_FILE, "w") as f:
         f.write(secrets.token_hex(32))
     os.chmod(PORTAL_SECRET_FILE, 0o600)
@@ -87,7 +81,6 @@ def fmtb(n):
 app.add_template_filter(fmtb)
 
 
-# ====================== icons (inline SVG) ======================
 ICONS = {
  "home": '<path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/>',
  "wifi": '<path d="M5 12.55a11 11 0 0 1 14.08 0"/><path d="M1.42 9a16 16 0 0 1 21.16 0"/><path d="M8.53 16.11a6 6 0 0 1 6.95 0"/><line x1="12" y1="20" x2="12.01" y2="20"/>',
@@ -137,7 +130,6 @@ def icon(name, size=18, cls=""):
                   f'aria-hidden="true">{ICONS[name]}</svg>')
 
 
-# ====================== i18n (default: English) ======================
 TR = {
  "en": {
   "lang_name": "فارسی", "nav_dash": "Dashboard", "nav_net": "Network Usage", "nav_usage": "User Usage",
@@ -514,13 +506,11 @@ def set_lang(code):
     return resp
 
 
-# ====================== state (users.json) ======================
 _PW_POOLS = ("abcdefghijkmnpqrstuvwxyz", "ABCDEFGHJKLMNPQRSTUVWXYZ", "23456789", "@#$%&*+=?!-_")
 FIELDS_LOCK = threading.Lock()
 
 
 def gen_dl_password():
-    """8 random characters: at least one lowercase, uppercase, digit and symbol (no look-alikes)."""
     chars = [secrets.choice(p) for p in _PW_POOLS]
     allc = "".join(_PW_POOLS)
     chars += [secrets.choice(allc) for _ in range(8 - len(chars))]
@@ -536,7 +526,7 @@ def load_state():
     st = _read_state()
     if any(not u.get("token") or not u.get("dl_password") for u in st["users"]):
         with FIELDS_LOCK:
-            st = _read_state()          # another thread may have filled them while we waited
+            st = _read_state()
             changed = False
             for u in st["users"]:
                 if not u.get("token"):
@@ -568,9 +558,9 @@ def _read_state():
         u.setdefault("limit_daily", None)
         u.setdefault("limit_total", None)
         u.setdefault("blocked", None)
-        u.setdefault("px", False)        # proxy routing switched on for this user
-        u.setdefault("ex", False)        # exit servers switched on for this user
-    st.pop("next_id", None)   # ids / ports are now reused (smallest free)
+        u.setdefault("px", False)
+        u.setdefault("ex", False)
+    st.pop("next_id", None)
     st.pop("last_port", None)
     return st
 
@@ -582,7 +572,6 @@ def save_state(st):
     os.replace(tmp, DB)
 
 
-# ====================== system helpers ======================
 def run(cmd, **kw):
     try:
         return subprocess.run(cmd, capture_output=True, text=True, **kw)
@@ -626,7 +615,6 @@ def port_error(st, port, proto="udp"):
 
 
 def free_id(st):
-    """Smallest unused ID: fills gaps left by deleted users first."""
     used = {u["id"] for u in st["users"]}
     i = 1
     while i in used:
@@ -635,7 +623,6 @@ def free_id(st):
 
 
 def next_port(st):
-    """Smallest free port above 1194 (fills gaps left by deleted users first)."""
     used = {u["port"] for u in st["users"]} | RESERVED_PORTS | {PORT}
     for p in range(1195, 65536):
         if p not in used and port_free(p, "udp") and port_free(p, "tcp"):
@@ -658,7 +645,6 @@ def nat_spec(sub):
 
 
 def drop_legacy_exit_ip():
-    """The 'exit IP' feature was removed: undo any SNAT rules it left behind and restore MASQUERADE."""
     if not os.path.exists(SETTINGS_FILE):
         return
     try:
@@ -706,7 +692,7 @@ def build_ovpn(name, port, dst, proto="udp"):
     common = rd(f"{SERVER_DIR}/client-common.txt")
     common = re.sub(r"^remote (\S+) \d+", rf"remote \1 {port}", common, flags=re.M)
     common = re.sub(r"^proto .*", lambda m: f"proto {proto}", common, flags=re.M)
-    if proto == "tcp":  # explicit-exit-notify only works with UDP
+    if proto == "tcp":
         common = re.sub(r"^explicit-exit-notify.*\n?", "", common, flags=re.M)
     cert = rd(f"{ED}/pki/issued/{name}.crt")
     cert = cert[cert.index("-----BEGIN CERTIFICATE-----"):]
@@ -723,7 +709,6 @@ def build_ovpn(name, port, dst, proto="udp"):
 
 
 def create_instance(name, port, sub, proto="udp"):
-    """Returns (ok, error_message)."""
     env = dict(os.environ, EASYRSA_CERT_EXPIRE="3650")
     r = run(["./easyrsa", "--batch", "build-client-full", name, "nopass"], cwd=ED, env=env)
     if r.returncode != 0:
@@ -732,8 +717,6 @@ def create_instance(name, port, sub, proto="udp"):
 
 
 def activate_instance(name, port, sub, proto="udp", revoke_on_fail=True, cleanup_on_fail=True):
-    """Write conf/ccd, firewall rules, start the service, build the .ovpn.
-    The client certificate must already exist in the PKI. Returns (ok, error)."""
     conf = open(f"{SERVER_DIR}/server.conf").read()
     conf = re.sub(r"^port .*", lambda m: f"port {port}", conf, flags=re.M)
     conf = re.sub(r"^server .*", lambda m: f"server {sub}.0 255.255.255.0", conf, flags=re.M)
@@ -741,7 +724,7 @@ def activate_instance(name, port, sub, proto="udp", revoke_on_fail=True, cleanup
         conf = re.sub(r"^proto .*", lambda m: f"proto {proto}", conf, flags=re.M)
     else:
         conf = conf.rstrip("\n") + f"\nproto {proto}\n"
-    if proto == "tcp":  # explicit-exit-notify only works with UDP
+    if proto == "tcp":
         conf = re.sub(r"^explicit-exit-notify.*\n?", "", conf, flags=re.M)
     conf = re.sub(r"^ifconfig-pool-persist .*", lambda m: f"ifconfig-pool-persist ipp-{name}.txt",
                   conf, flags=re.M)
@@ -767,7 +750,6 @@ def activate_instance(name, port, sub, proto="udp", revoke_on_fail=True, cleanup
 
 
 def edit_instance(u, new_id, new_port, new_proto):
-    """Re-create a user's instance with another id (subnet) / port / protocol. Rolls back on failure."""
     name = u["name"]
     old_port, old_sub, old_proto = u["port"], u["subnet"], u.get("proto", "udp")
     sub = old_sub
@@ -788,8 +770,8 @@ def edit_instance(u, new_id, new_port, new_proto):
     u["id"], u["port"], u["subnet"], u["proto"] = new_id, new_port, sub, new_proto
     with SLOCK:
         if name in USAGE:
-            USAGE[name]["lu"] = USAGE[name]["ld"] = 0   # new iptables rules start at zero
-            USAGE[name]["sk"] = None                     # the old VPN session is gone
+            USAGE[name]["lu"] = USAGE[name]["ld"] = 0
+            USAGE[name]["sk"] = None
         CONN.pop(name, None)
     return True, ""
 
@@ -819,7 +801,6 @@ def remove_instance(u, revoke=True):
 
 
 def sync_existing():
-    """Import instances that were created earlier by hand."""
     if not os.path.isdir(SERVER_DIR):
         return
     st = load_state()
@@ -875,8 +856,6 @@ def fmt_left(sec):
 
 
 def adoptable_clients(st):
-    """Valid client certificates in the PKI that no panel user owns, e.g. clients made by
-    openvpn-install.sh on the main port. They can be adopted by giving them their own instance."""
     names = []
     try:
         with open(f"{ED}/pki/index.txt") as f:
@@ -908,13 +887,11 @@ def adoptable_clients(st):
     return out
 
 
-# ====================== backup / import ======================
 ROOT_FILES = ["ca.crt", "server.crt", "server.key", "crl.pem", "tc.key", "dh.pem"]
 SUB_RE = re.compile(r"^10\.\d{1,3}\.\d{1,3}$")
 
 
 def build_backup_bytes():
-    """Zip with: panel state, usage totals, the whole PKI and the server's root cert files."""
     with LOCK:
         sync_existing()
         st = load_state()
@@ -960,7 +937,6 @@ def extract_to(z, member, dest_root, rel):
 
 
 def restore_pki_from_zip(z):
-    """Replace the server PKI + root cert files with the backup's. Returns the safety copy path."""
     safety = f"{BACKUP_DIR}/before-import-{time.strftime('%Y%m%d-%H%M%S')}.zip"
     with open(safety, "wb") as f:
         f.write(build_backup_bytes())
@@ -982,7 +958,6 @@ def restore_pki_from_zip(z):
 
 
 def import_backup_zip(data, restore_pki):
-    """Returns (kind, payload). kind: 'err' (payload = message) or 'ok' (payload = flash messages list)."""
     try:
         z = zipfile.ZipFile(io.BytesIO(data))
         infos = z.infolist()
@@ -1073,7 +1048,7 @@ def import_backup_zip(data, restore_pki):
                         USAGE[name] = {"up": int(rec.get("up", 0)), "down": int(rec.get("down", 0)),
                                        "lu": 0, "ld": 0}
                 added += 1
-            except Exception as e:  # noqa
+            except Exception as e:
                 failed.append(str(bu.get("name", "?"))[:32])
                 print("import error:", bu.get("name"), e, flush=True)
         msgs.insert(0, tr("f_b_done", added=added, skipped=skipped, expired=expired, failed=len(failed)))
@@ -1082,7 +1057,6 @@ def import_backup_zip(data, restore_pki):
     return "ok", msgs
 
 
-# ====================== background: expiry ======================
 def reaper():
     while True:
         time.sleep(60)
@@ -1098,7 +1072,7 @@ def reaper():
                 if len(keep) != len(st["users"]):
                     st["users"] = keep
                     save_state(st)
-        except Exception as e:  # noqa
+        except Exception as e:
             print("reaper error:", e, flush=True)
 
 
@@ -1110,9 +1084,7 @@ def restore_rules():
             pass
 
 
-# ====================== per-user speed limit (tc) ======================
 def find_dev(sub):
-    """tun device of a user's instance = the interface that owns <subnet>.1"""
     out = run(["ip", "-o", "-4", "addr", "show"]).stdout
     m = re.search(rf"^\d+:\s+(\S+)\s+inet {re.escape(sub)}\.1[/ ]", out, re.M)
     return m.group(1) if m else None
@@ -1124,7 +1096,6 @@ def clear_limit(dev):
 
 
 def set_limit(dev, mbit):
-    """Download (server->user): tbf shaping on egress. Upload (user->server): ingress policing."""
     clear_limit(dev)
     rate = f"{mbit:g}mbit"
     burst = str(max(32768, int(mbit * 1e6 / 8 / 50)))
@@ -1146,7 +1117,6 @@ def apply_speed(u):
 
 
 def enforce_limits():
-    """tc rules vanish when an instance restarts / server reboots, so re-apply them."""
     for u in load_state()["users"]:
         if not u.get("speed"):
             continue
@@ -1155,12 +1125,11 @@ def enforce_limits():
             set_limit(dev, u["speed"])
 
 
-# ====================== background: traffic sampling ======================
-USAGE = {}      # name -> {"up","down","lu","ld"}   (bytes, since user creation)
-RATES = {}      # name -> (up_bps, down_bps) in bytes/s
-CONN = {}       # name -> {"online","last","ip","since"}
+USAGE = {}
+RATES = {}
+CONN = {}
 NET = {"iface": None, "last": None, "cur": (0, 0), "rate": (0.0, 0.0), "hist": deque(maxlen=180)}
-NET_DAYS = {}   # "YYYY-MM-DD" -> [rx, tx]
+NET_DAYS = {}
 
 
 def load_usage():
@@ -1187,7 +1156,7 @@ def save_usage():
 
 
 def default_iface():
-    try:  # /proc/net/route: default route has destination 00000000
+    try:
         with open("/proc/net/route") as f:
             for line in f.readlines()[1:]:
                 p = line.split()
@@ -1250,7 +1219,7 @@ def read_cpu_times():
     try:
         with open("/proc/stat") as f:
             p = [int(x) for x in f.readline().split()[1:9]]
-        return sum(p), p[3] + p[4]          # total, idle (idle + iowait)
+        return sum(p), p[3] + p[4]
     except (OSError, ValueError, IndexError):
         return None
 
@@ -1311,8 +1280,6 @@ def mgmt_line(name):
 
 
 def mgmt_clients(name):
-    """Connected clients read live from the instance's management socket.
-    Returns None when the socket is not available (older instance / service stopped)."""
     path = mgmt_path(name)
     if not os.path.exists(path):
         return None
@@ -1360,7 +1327,6 @@ def _add_usage(rec, du, dd, today):
 
 
 def account_mgmt(u, rows, dt, now, today):
-    """Usage + online state from OpenVPN's own per-session counters (exact, live)."""
     name = u["name"]
     rec = USAGE.get(name)
     if rec is None:
@@ -1373,10 +1339,10 @@ def account_mgmt(u, rows, dt, now, today):
         if rec.get("sk") == key and r["rx"] >= rec.get("sr", 0) and r["tx"] >= rec.get("st", 0):
             du, dd = r["rx"] - rec["sr"], r["tx"] - rec["st"]
         elif rec.get("sk") != key and r["since"] >= rec.get("mt", now) - 5:
-            du, dd = r["rx"], r["tx"]       # session began after our previous look: count all of it
+            du, dd = r["rx"], r["tx"]
         rec["sk"], rec["sr"], rec["st"] = key, r["rx"], r["tx"]
         if c.get("key") != key or c.get("rx") != r["rx"]:
-            c["key"], c["rx"], c["rx_t"] = key, r["rx"], now   # client sent something -> still alive
+            c["key"], c["rx"], c["rx_t"] = key, r["rx"], now
         online = now - c.get("rx_t", now) < ACTIVE_WINDOW
         c.update(online=online, ip=r["ip"] or c.get("ip"), since=r["since"])
         if online:
@@ -1396,8 +1362,6 @@ def account_mgmt(u, rows, dt, now, today):
 
 
 def account_legacy(u, counters, dt, now, today):
-    """Fallback for instances without a management socket: iptables counters, counted only while the
-    status file says somebody is connected (packets sent to nobody are not usage)."""
     name, sub = u["name"], u["subnet"]
     rows = parse_status(name)
     c = CONN.setdefault(name, {})
@@ -1445,7 +1409,6 @@ def users_tick(dt):
 
 
 def migrate_management():
-    """One-time: give instances created by older versions a management socket (needs one restart each)."""
     for u in load_state()["users"]:
         name = u["name"]
         path = f"{SERVER_DIR}/{name}.conf"
@@ -1462,7 +1425,7 @@ def migrate_management():
             continue
         run(["systemctl", "restart", f"openvpn-server@{name}"])
         time.sleep(2)
-        if not is_active(name):  # could not start with the new line: put the old config back
+        if not is_active(name):
             with open(path, "w") as f:
                 f.write(conf)
             run(["systemctl", "restart", f"openvpn-server@{name}"])
@@ -1486,7 +1449,6 @@ def limit_reason(u, rec):
 
 
 def enforce_blocks():
-    """Stop users that reached a data limit; start them again when the limit is lifted / a new day starts."""
     with LOCK:
         st = load_state()
         changed = False
@@ -1516,7 +1478,6 @@ def reset_usage(u):
 
 
 def parse_status(name):
-    """Connected clients of one instance, from OpenVPN's status file (version 2, refreshed every ~60s)."""
     path = f"{STATUS_DIR}/status-{name}.log"
     try:
         if time.time() - os.stat(path).st_mtime > 180:
@@ -1566,14 +1527,11 @@ def sampler():
             if now - last_save >= 30:
                 save_usage()
                 last_save = now
-        except Exception as e:  # noqa
+        except Exception as e:
             print("sampler error:", e, flush=True)
         tick += 1
 
 
-# ====================== upstream proxies (Advanced -> Proxy routing) ======================
-# Users' TCP traffic is redirected (iptables REDIRECT) to a small built-in transparent relay, which forwards each
-# connection through a SOCKS5 / SOCKS4 / HTTP-CONNECT proxy picked from the admin's list. UDP is not proxied.
 import base64
 import random
 import select
@@ -1582,21 +1540,21 @@ import struct
 from concurrent.futures import ThreadPoolExecutor
 
 PROXY_FILE = f"{BASE}/proxy.json"
-PROXY_LPORT = int(os.environ.get("PROXY_REDIR_PORT", "8091"))   # local port of the relay (never exposed: only VPN subnets may use it)
+PROXY_LPORT = int(os.environ.get("PROXY_REDIR_PORT", "8091"))
 PROXY_MAX = 500
 PLOCK = threading.RLock()
 PCFG_DEFAULT = {"enabled": False, "list": [], "dtype": "socks5", "mode": "sticky", "rotate_min": 0,
                 "fallback": False, "block_quic": True, "all_users": False}
-PSTATE = {}      # proxy key -> {"ok","ip","ms","checked","fails","fail_until"}
-PSTICKY = {}     # user subnet -> (proxy key, picked at)
-PSUBS = set()    # subnets of the users that go through the relay (only these may use it)
-PROUTE = {}      # user subnet -> "exit" or "proxy": which upstream list that user's traffic uses
+PSTATE = {}
+PSTICKY = {}
+PSUBS = set()
+PROUTE = {}
 PRR = [0]
 PTEST = {"running": False, "done": 0, "total": 0}
-PAPPLIED = {}    # (table, chain) -> rules last written
-PLIST = []       # parsed proxies
+PAPPLIED = {}
+PLIST = []
 PSRV = {"ok": False, "srv": None, "err": None}
-PCLEAN = [False]   # leftovers of a previous run already removed
+PCLEAN = [False]
 PCHAINS = (("nat", "GL_PROXY", "PREROUTING"), ("filter", "GL_PROXY_IN", "INPUT"), ("filter", "GL_PROXY_FW", "FORWARD"))
 
 
@@ -1632,7 +1590,7 @@ def _pload():
         with open(PROXY_FILE) as f:
             saved = json.load(f)
         cfg.update(saved)
-        if "all_users" not in saved:        # saved by an older version: it applied to every user, keep it that way
+        if "all_users" not in saved:
             cfg["all_users"] = bool(cfg.get("enabled"))
     except (OSError, ValueError):
         pass
@@ -1658,7 +1616,6 @@ def _prebuild():
     PLIST = out
 
 
-# ---- exit servers: your own SOCKS5 servers (user/password). While enabled they replace the free-proxy pool ----
 import ipaddress
 
 EXIT_FILE = f"{BASE}/exit_servers.json"
@@ -1674,7 +1631,7 @@ def _exload():
         with open(EXIT_FILE) as f:
             saved = json.load(f)
         cfg.update(saved)
-        if "all_users" not in saved:        # saved by an older version: it applied to every user, keep it that way
+        if "all_users" not in saved:
             cfg["all_users"] = bool(cfg.get("enabled"))
     except (OSError, ValueError):
         pass
@@ -1699,9 +1656,6 @@ _prebuild()
 
 
 def user_route(u):
-    """Which upstream list this user's TCP traffic goes through: "exit", "proxy" or None (direct).
-    A feature must be enabled in Advanced; then it reaches every user ("apply to all") or only the users
-    switched on in their Edit window. When both apply, exit servers win (as they always replaced the proxy list)."""
     if EX["enabled"] and EXLIST and (EX.get("all_users") or u.get("ex")):
         return "exit"
     if PCFG["enabled"] and PLIST and (PCFG.get("all_users") or u.get("px")):
@@ -1710,8 +1664,6 @@ def user_route(u):
 
 
 def feature_state():
-    """For the Edit window -> (proxy, exit), each 'off' (not enabled in Advanced), 'all' (already applied to every
-    user) or 'ok' (can be switched per user)."""
     def one(cfg):
         return "off" if not cfg["enabled"] else ("all" if cfg.get("all_users") else "ok")
     return one(PCFG), one(EX)
@@ -1759,7 +1711,7 @@ def proxy_handshake(s, p, dip, dport):
             req += "Proxy-Authorization: Basic " + base64.b64encode(f"{p['user']}:{p['pw']}".encode()).decode() + "\r\n"
         s.sendall((req + "\r\n").encode())
         buf = b""
-        while not buf.endswith(b"\r\n\r\n"):      # byte by byte: never swallow data that follows the headers
+        while not buf.endswith(b"\r\n\r\n"):
             c = s.recv(1)
             if not c or len(buf) > 8192:
                 raise OSError("bad http reply")
@@ -1831,7 +1783,7 @@ def _relay(a, b):
                         live[s].sendall(data)
                     except OSError:
                         return
-                else:                       # this side finished sending: pass the half-close on
+                else:
                     dst = live.pop(s)
                     try:
                         dst.shutdown(socket.SHUT_WR)
@@ -1848,14 +1800,14 @@ class _RedirHandler(socketserver.BaseRequestHandler):
     def handle(self):
         c = self.request
         sub = self.client_address[0].rsplit(".", 1)[0]
-        if sub not in PSUBS:                # only VPN users' redirected connections are served
+        if sub not in PSUBS:
             return
         try:
-            d = c.getsockopt(socket.SOL_IP, 80, 16)          # SO_ORIGINAL_DST
+            d = c.getsockopt(socket.SOL_IP, 80, 16)
             dport, dip = struct.unpack("!H", d[2:4])[0], socket.inet_ntoa(d[4:8])
         except OSError:
             return
-        mode = PROUTE.get(sub)              # "exit" / "proxy" / None (user no longer routed: go direct)
+        mode = PROUTE.get(sub)
         pool, cfg = (EXLIST, EX) if mode == "exit" else ((PLIST, PCFG) if mode == "proxy" else ([], {}))
         up = None
         if mode and pool:
@@ -1909,7 +1861,7 @@ def proxy_test_one(p, dip):
         m = re.search(rb"\r\n\r\n\s*(\d{1,3}(?:\.\d{1,3}){3})\s*$", data)
         if m:
             ok, ip = True, m.group(1).decode()
-    except Exception:  # noqa
+    except Exception:
         pass
     with PLOCK:
         st = PSTATE.setdefault(p["key"], {})
@@ -1955,7 +1907,6 @@ def _ipt(table, *args):
 
 
 def _chain_apply(table, chain, parent, rules):
-    """rules=None removes the chain; otherwise the chain holds exactly `rules` and is the first rule of `parent`."""
     if rules is None:
         if _ipt(table, "-S", chain).returncode == 0:
             while _ipt(table, "-D", parent, "-j", chain).returncode == 0:
@@ -1973,14 +1924,13 @@ def _chain_apply(table, chain, parent, rules):
             _ipt(table, "-A", chain, *r)
         PAPPLIED[(table, chain)] = rules
     first = [l for l in _ipt(table, "-S", parent).stdout.splitlines() if l.startswith("-A ")][:1]
-    if first != [f"-A {parent} -j {chain}"]:     # must stay above rules the panel inserts later (e.g. FORWARD ACCEPT per user)
+    if first != [f"-A {parent} -j {chain}"]:
         while _ipt(table, "-D", parent, "-j", chain).returncode == 0:
             pass
         _ipt(table, "-I", parent, "1", "-j", chain)
 
 
 def _relay_ensure(on):
-    """The relay listens only while Proxy Routing / Exit servers is in use: nothing extra stays open otherwise."""
     with PLOCK:
         if on and PSRV["srv"] is None:
             try:
@@ -2006,20 +1956,20 @@ def proxy_sync_rules():
         m = user_route(u)
         if m:
             route[u["subnet"]] = m
-    PROUTE = route                             # replaced in one step: the relay never sees a half-built table
+    PROUTE = route
     if not route:
         PSUBS = set()
-        if not PCLEAN[0] or PAPPLIED:          # remove leftovers once, then stay completely idle
+        if not PCLEAN[0] or PAPPLIED:
             for t, c, par in PCHAINS:
                 _chain_apply(t, c, par, None)
             PCLEAN[0] = True
         _relay_ensure(False)
         return
     _relay_ensure(True)
-    if not PSRV["ok"]:                         # relay could not start (port busy): never redirect users into nothing
+    if not PSRV["ok"]:
         return
     PCLEAN[0] = False
-    subs = sorted(route)                       # only the users that use Proxy Routing / Exit servers are redirected
+    subs = sorted(route)
     PSUBS = set(subs)
     lp = str(PROXY_LPORT)
     nat = [["-s", f"{s}.0/24", "!", "-d", f"{s}.0/24", "-p", "tcp", "-m", "addrtype", "!", "--dst-type", "LOCAL",
@@ -2035,7 +1985,7 @@ def proxy_loop():
     while True:
         try:
             proxy_sync_rules()
-        except Exception as e:  # noqa
+        except Exception as e:
             print("proxy sync error:", e, flush=True)
         time.sleep(15)
 
@@ -2063,7 +2013,6 @@ def proxy_view():
         return {"rows": rows, "test": dict(PTEST)}
 
 
-# ====================== exit servers (Advanced -> Exit servers) ======================
 _HOST_RE = re.compile(r"^[A-Za-z0-9.\-]{1,253}$")
 
 
@@ -2081,7 +2030,6 @@ def _exrebuild():
 
 
 def exit_validate(f, need_password=True):
-    """-> (fields, error_key). Password may stay empty on edit (keeps the old one)."""
     ip = f.get("ip", "").strip()
     if not _HOST_RE.match(ip):
         return None, "f_ex_bad_ip"
@@ -2139,7 +2087,6 @@ def exit_view():
 
 
 def exit_commit():
-    """Save, rebuild the pool and re-apply firewall rules. Turns the feature off when no active server is left."""
     with PLOCK:
         auto = False
         if EX["enabled"] and not any(s.get("is_active") for s in EX["servers"]):
@@ -2183,7 +2130,6 @@ def exit_test_all():
 
 
 def exit_health_loop():
-    """Every 30 s: check the active exit servers so a dead one is skipped quickly and a recovered one comes back."""
     while True:
         time.sleep(30)
         try:
@@ -2191,17 +2137,15 @@ def exit_health_loop():
                 dip = socket.gethostbyname("api.ipify.org")
                 with ThreadPoolExecutor(max_workers=8) as ex:
                     list(ex.map(lambda p: proxy_test_one(p, dip), list(EXLIST)))
-        except Exception:  # noqa
+        except Exception:
             pass
 
 
-# ====================== address written into downloaded .ovpn files (Advanced) ======================
 SUPPORT_FILE = f"{BASE}/support.json"
 _TG_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_]{4,31}$")
 
 
 def tg_clean(raw):
-    """'@name', 'name' or a t.me link -> the bare Telegram username, or None when it is not valid."""
     v = (raw or "").strip()
     v = re.sub(r"^(?:https?://)?(?:www\.)?(?:t\.me|telegram\.me)/", "", v, flags=re.I)
     v = v.split("?")[0].strip("/").lstrip("@")
@@ -2249,9 +2193,6 @@ def ovpn_addr_valid(a):
 
 
 def ovpn_bytes(path):
-    """The .ovpn file as it is stored, with the host of its `remote` line replaced when an address is set
-    (the port stays the user's own port). Done at download time, so existing users are covered and clearing
-    the box brings the original address back."""
     with open(path, encoding="utf-8") as f:
         data = f.read()
     a = ovpn_addr()
@@ -2260,7 +2201,6 @@ def ovpn_bytes(path):
     return data.encode("utf-8")
 
 
-# ====================== auth ======================
 DUMMY_HASH = generate_password_hash("not-a-real-password")
 
 
@@ -2273,7 +2213,7 @@ def save_auth(a):
 
 
 def load_auth():
-    if not os.path.exists(AUTH_FILE):  # first run: admin + PANEL_PASSWORD
+    if not os.path.exists(AUTH_FILE):
         save_auth({"users": [{"username": "gasslight", "hash": generate_password_hash(PASSWORD)}]})
     with open(AUTH_FILE) as f:
         return json.load(f)
@@ -2325,7 +2265,6 @@ def logout():
     return redirect(url_for("login"))
 
 
-# ====================== pages ======================
 def page(body, **ctx):
     ctx.update(css=CSS, app=APP_NAME)
     return render_template_string(TOP + body + BOTTOM, **ctx)
@@ -2581,7 +2520,7 @@ def edit_user(name):
             if u.get("blocked"):
                 run(["systemctl", "disable", "--now", f"openvpn-server@{name}"])
         u["speed"], u["limit_daily"], u["limit_total"] = speed or None, daily or None, total or None
-        px_st, ex_st = feature_state()      # a switch can only change while its feature is on and not applied to everyone
+        px_st, ex_st = feature_state()
         if px_st == "ok":
             u["px"] = f.get("px") == "1"
         if ex_st == "ok":
@@ -2615,7 +2554,6 @@ ADV_SUBPAGES = {"account": "adv_pg_account", "proxy": "adv_pg_proxy", "exit": "a
 @app.route("/advanced")
 @login_required
 def advanced_page():
-    # the POST handlers below still redirect here: send the person back to the sub page they were just on
     return redirect(url_for(ADV_SUBPAGES.get(session.get("adv_last"), "adv_pg_account")))
 
 
@@ -2973,9 +2911,8 @@ def portal_regen_link(name):
     return _regen(name, "token", new_token, "f_link_regen")
 
 
-# ----- internal API for portal.py (localhost only + shared secret; anything else gets a plain 404) -----
 TOKEN_RE = re.compile(r"^[A-Za-z0-9_-]{16,64}$")
-PW_FAILS = {}   # ("t", token) / ("i", client ip) -> (failures, locked_until)
+PW_FAILS = {}
 
 
 def portal_guard():
@@ -3089,7 +3026,6 @@ def download(name):
     return send_file(io.BytesIO(ovpn_bytes(path)), as_attachment=True, download_name=f"{name}.ovpn")
 
 
-# ====================== API ======================
 @app.route("/api/port_check")
 @login_required
 def api_port_check():
@@ -3141,7 +3077,6 @@ def api_usage():
     return jsonify(users=out, now=time.time())
 
 
-# ====================== UI ======================
 CSS = """
 <style>
 :root{--bg:#0a0e1f;--card:rgba(255,255,255,.055);--bd:rgba(255,255,255,.1);--tx:#eaeefb;--mut:#8f9bbd;
@@ -3159,13 +3094,11 @@ a{color:inherit}
 .ic{flex:none;vertical-align:-3px}
 .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;direction:ltr;unicode-bidi:isolate}
 .grow{flex:1;min-width:0}
-/* ---------- brand / logo ---------- */
 .brand{display:flex;align-items:center;gap:10px;font-size:19px;font-weight:800;color:var(--tx);text-decoration:none}
 .brand em{font-style:normal;background:linear-gradient(135deg,var(--p1),var(--p2));-webkit-background-clip:text;
 background-clip:text;color:transparent}
 .logo{width:38px;height:38px;border-radius:12px;display:grid;place-items:center;flex:none;color:#fff;
 background:linear-gradient(135deg,var(--p1),var(--p2));box-shadow:0 8px 24px rgba(109,124,255,.4)}
-/* ---------- sidebar (desktop) / dropdown (mobile) ---------- */
 .side{position:fixed;top:0;right:0;bottom:0;width:var(--side);display:flex;flex-direction:column;gap:6px;
 padding:18px 14px;background:var(--nav);border-left:1px solid var(--bd);z-index:30;overflow-y:auto;
 backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
@@ -3175,7 +3108,6 @@ backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}
 text-decoration:none;font-size:14px;font-weight:500;transition:.2s}
 .links a:hover{color:var(--tx);background:var(--inp)}
 .links a.on{color:#fff;background:linear-gradient(135deg,var(--p1),var(--p2));box-shadow:0 6px 18px rgba(109,124,255,.35)}
-/* ---------- Advanced sub-menu ---------- */
 .grp{display:flex;flex-direction:column}
 .gbtn{display:flex;align-items:center;gap:12px;width:100%;padding:11px 14px;border-radius:12px;border:0;background:none;
 color:var(--mut);font:inherit;font-size:14px;font-weight:500;cursor:pointer;text-align:start;transition:.2s}
@@ -3208,7 +3140,6 @@ display:flex;flex-direction:column;align-items:center;justify-content:center;gap
 .burger.open span:nth-child(3){transform:translateY(-7px) rotate(-45deg)}
 .wrap{margin-right:var(--side);padding:26px 28px 60px}
 .main{max-width:1000px;margin:0 auto}
-/* ---------- components ---------- */
 .card{background:var(--card);border:1px solid var(--bd);border-radius:18px;padding:20px;margin-bottom:18px;
 backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
 .card h3{margin:0 0 14px;font-size:16px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
@@ -3261,7 +3192,6 @@ background:var(--inp);color:var(--mut);border:1px solid var(--bd)}
 .sub{display:block;font-size:11px;color:var(--mut);font-weight:400}
 .av{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;font-weight:700;font-size:18px;
 background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
-/* ---------- create form ---------- */
 .form{display:grid;grid-template-columns:repeat(12,1fr);gap:10px;align-items:start}
 .f-id{grid-column:span 2}.f-name{grid-column:span 4}.f-proto{grid-column:span 2}.f-port{grid-column:span 4}
 .f-q{grid-column:span 3}.f-btn{grid-column:1/-1}.f-btn .btn{width:100%;padding:12px}
@@ -3272,7 +3202,6 @@ background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
 .seg label{flex:1;margin:0;cursor:pointer}.seg input{display:none}
 .seg span{display:block;text-align:center;padding:8px 6px;border-radius:9px;font-size:13px;font-weight:700;color:var(--mut);transition:.2s}
 .seg input:checked+span{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;box-shadow:0 4px 12px rgba(109,124,255,.35)}
-/* ---------- user cards ---------- */
 .search{margin-bottom:14px}
 .users,.ugrid{display:grid;grid-template-columns:repeat(2,1fr);gap:14px}
 .user,.ucard{background:var(--card);border:1px solid var(--bd);border-radius:16px;padding:16px;transition:.2s;min-width:0}
@@ -3286,7 +3215,6 @@ background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
 .acts{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .acts form{display:flex;gap:6px;margin:0}.acts input{width:76px;padding:8px 10px;border-radius:10px;font-size:13px}
 .empty{text-align:center;color:var(--mut);padding:30px}
-/* ---------- portal link / download password ---------- */
 .portal{display:flex;flex-direction:column;gap:8px;margin:0 0 12px;padding:10px 12px;border-radius:12px;background:var(--inp)}
 .prow{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
 .plabel{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--mut);margin-inline-end:auto}
@@ -3294,7 +3222,6 @@ background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
 .portal form{margin:0;display:flex}
 .btn.ico{padding:8px 10px}
 .btn.done{background:rgba(52,211,153,.18)!important;color:var(--ok)!important;border-color:rgba(52,211,153,.4)!important}
-/* ---------- usage cards ---------- */
 .kv{display:flex;flex-direction:column;gap:8px;margin:4px 0 14px;padding:10px 12px;border-radius:12px;background:var(--inp)}
 .kv div{display:flex;justify-content:space-between;align-items:center;gap:10px;font-size:13px}
 .kv span.k{color:var(--mut);display:flex;align-items:center;gap:6px;white-space:nowrap}
@@ -3305,7 +3232,6 @@ background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
 .lim{font-size:12px;color:var(--mut);margin-bottom:10px}
 .lim .l{display:flex;justify-content:space-between;gap:8px}
 .live{font-size:12px;display:flex;gap:14px;margin-top:10px}
-/* ---------- network ---------- */
 .speeds{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:18px}
 .speed{margin:0;text-align:center;direction:ltr}
 .speed>span{color:var(--mut);font-size:13px;display:inline-flex;align-items:center;gap:6px}
@@ -3318,7 +3244,6 @@ background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;flex:none}
 canvas{width:100%;height:260px;display:block}
 .legend{display:flex;gap:18px;justify-content:center;font-size:12px;color:var(--mut);margin-top:8px}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:6px}
-/* ---------- backup / advanced ---------- */
 .two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
 .chk{display:flex;gap:10px;align-items:flex-start;margin:12px 0 4px;font-size:13px;color:var(--tx);cursor:pointer;line-height:1.5}
 .chk input{width:18px;height:18px;margin-top:2px;flex:none;accent-color:var(--p1)}
@@ -3330,7 +3255,6 @@ canvas{width:100%;height:260px;display:block}
 .alist{display:flex;flex-direction:column;gap:8px}
 .arow{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border-radius:12px;background:var(--inp)}
 .arow>span{display:flex;align-items:center;gap:8px;min-width:0;word-break:break-all}
-/* ---------- dialog ---------- */
 .dlg{border:1px solid var(--bd);border-radius:20px;background:var(--navs);color:var(--tx);padding:0;
 width:calc(100% - 28px);max-width:540px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
 .dlg::backdrop{background:rgba(5,8,20,.6);backdrop-filter:blur(4px)}
@@ -3339,7 +3263,6 @@ width:calc(100% - 28px);max-width:540px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.span2{grid-column:1/-1}
 .dwarn{display:flex;gap:8px;align-items:flex-start;margin:14px 0;font-size:12px;color:var(--warn);line-height:1.6}
 .dacts{display:flex;gap:8px;flex-wrap:wrap}.dacts .btn{flex:1 1 auto}
-/* ---------- responsive ---------- */
 @media(max-width:1180px){.speeds{grid-template-columns:1fr 1fr}}
 @media(max-width:980px){
  .topbar{display:flex;position:sticky;top:0;z-index:40;height:62px;align-items:center;justify-content:space-between;
@@ -3926,7 +3849,7 @@ setTimeout(poll,1500);
 
 
 if __name__ == "__main__":
-    load_auth()      # creates the first "admin" account right at startup (needs PANEL_PASSWORD only once)
+    load_auth()
     load_usage()
     restore_rules()
     drop_legacy_exit_ip()
