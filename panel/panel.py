@@ -16,6 +16,7 @@ import zipfile
 from collections import deque
 from functools import wraps
 from urllib.parse import urlparse
+from urllib.request import Request, urlopen
 
 from markupsafe import Markup
 from werkzeug.security import check_password_hash, generate_password_hash
@@ -121,6 +122,9 @@ ICONS = {
  "map": '<path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>',
  "chevron": '<polyline points="6 9 12 15 18 9"/>',
  "send": '<line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/>',
+ "sun": '<circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>',
+ "moon": '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>',
+ "github": '<path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/>',
 }
 
 
@@ -470,6 +474,52 @@ TR["fa"].update({
   "ex_all_hint": "خاموش: هیچ تغییری برای کاربرها نمی‌کنه و فقط کاربرهایی که تو پنجره‌ی ویرایششون فعالش کردی از سرورهای خروجی استفاده می‌کنن. روشن: همه‌ی کاربرها ازشون رد می‌شن و کلید هر کاربر قفل می‌شه.",
   "ux_title": "مسیردهی ترافیک", "ux_px": "فعال‌سازی مسیردهی از پروکسی", "ux_ex": "فعال‌سازی سرورهای خروجی",
   "ux_off": "اول تو بخش پیشرفته فعالش کن.", "ux_all": "از قبل برای همه‌ی کاربرها فعاله.",
+})
+
+
+TR["en"].update({
+ "nav_users": "Users", "theme": "Switch theme",
+ "dash_ip": "Server exit IP", "dash_admin": "Signed-in admin", "dash_uptime": "Uptime", "dash_os": "Operating system",
+ "dash_users": "Total users", "dash_github": "GitHub project", "dash_dns": "DNS", "dash_dns_edit": "Edit DNS",
+ "dash_dns_title": "Edit DNS", "dash_dns_label": "DNS servers (up to 4 IPs, separated by comma or space)",
+ "dash_dns_ph": "e.g. 1.1.1.1, 8.8.8.8", "dash_dns_none": "Not set",
+ "dash_dns_hint": "Applies to every user, including new ones. Running VPN services restart briefly to push it and devices reconnect on their own. Existing .ovpn files don't need to change.",
+ "dash_add": "Add new user", "up_fmt": "{d}d {h}h {m}m",
+ "f_dns_saved": "DNS updated for all users", "f_dns_same": "DNS is already set to this value",
+ "f_dns_bad": "Enter 1 to 4 valid IPv4 addresses", "f_dns_fail": "DNS update failed, nothing was changed: {err}",
+ "eo_hint": "Used only for this user and takes priority over the global address in Advanced. Leave empty to use the global address.",
+})
+TR["fa"].update({
+ "nav_users": "کاربران", "theme": "تغییر تم",
+ "dash_ip": "آی‌پی خروجی سرور", "dash_admin": "ادمین واردشده", "dash_uptime": "مدت زمان اجرا", "dash_os": "سیستم عامل",
+ "dash_users": "تعداد کل کاربرها", "dash_github": "پروژه در GitHub", "dash_dns": "DNS", "dash_dns_edit": "ویرایش DNS",
+ "dash_dns_title": "ویرایش DNS", "dash_dns_label": "سرورهای DNS (حداکثر ۴ آی‌پی، با ویرگول یا فاصله جدا کن)",
+ "dash_dns_ph": "مثلاً 1.1.1.1, 8.8.8.8", "dash_dns_none": "تنظیم نشده",
+ "dash_dns_hint": "برای همه‌ی کاربرها، از جمله کاربرهای جدید، اعمال می‌شه. سرویس‌های روشن VPN یه لحظه ری‌استارت می‌شن تا DNS جدید پوش بشه و دستگاه‌ها خودشون دوباره وصل می‌شن. فایل‌های .ovpn نیازی به تغییر ندارن.",
+ "dash_add": "افزودن یوزر جدید", "up_fmt": "{d} روز و {h} ساعت و {m} دقیقه",
+ "f_dns_saved": "DNS برای همه‌ی کاربرها تغییر کرد", "f_dns_same": "DNS همین الان روی همین مقدار تنظیم شده",
+ "f_dns_bad": "۱ تا ۴ آی‌پی معتبر IPv4 وارد کن", "f_dns_fail": "تغییر DNS انجام نشد و چیزی عوض نشد: {err}",
+ "eo_hint": "فقط برای همین کاربر استفاده می‌شه و روی آدرس کلی بخش پیشرفته اولویت داره. خالی بذاری آدرس کلی استفاده می‌شه.",
+})
+
+
+TR["en"].update({
+ "dash_online": "Online now", "dash_latency": "Latency", "dash_chart": "Users traffic chart",
+ "r24h": "24h", "r3d": "3d", "r7d": "7d", "r30d": "30d", "dash_peak": "Peak usage",
+ "dash_nodata": "No data yet", "dash_info": "Server info", "dash_dns_default": "Panel default DNS",
+ "dash_restart": "Restart panel",
+ "dash_restart_confirm": "Restart the panel? It will be unavailable for a few seconds (OpenVPN services are not touched).",
+ "dash_restarting": "Restarting...", "dash_logs": "Last 50 server logs", "dash_logs_view": "View logs",
+ "dash_logs_none": "No logs found", "dash_copy": "Copy", "dash_close": "Close",
+})
+TR["fa"].update({
+ "dash_online": "کاربران آنلاین هم‌اکنون", "dash_latency": "Latency", "dash_chart": "نمودار مصرف کاربران",
+ "r24h": "۲۴ ساعت", "r3d": "۳ روز", "r7d": "۷ روز", "r30d": "۳۰ روز", "dash_peak": "پیک مصرف",
+ "dash_nodata": "هنوز داده‌ای نیست", "dash_info": "اطلاعات سرور", "dash_dns_default": "DNS پیش‌فرض پنل",
+ "dash_restart": "راه‌اندازی مجدد پنل",
+ "dash_restart_confirm": "پنل ری‌استارت بشه؟ چند ثانیه در دسترس نیست (سرویس‌های OpenVPN دست نمی‌خورن).",
+ "dash_restarting": "در حال راه‌اندازی مجدد...", "dash_logs": "آخرین لاگ‌های سرور (۵۰ مورد اخیر)",
+ "dash_logs_view": "مشاهده لاگ‌ها", "dash_logs_none": "لاگی پیدا نشد", "dash_copy": "کپی", "dash_close": "بستن",
 })
 
 
@@ -2192,13 +2242,162 @@ def ovpn_addr_valid(a):
     return True
 
 
-def ovpn_bytes(path):
+def user_ovpn_addr(u):
+    own = str((u or {}).get("ovpn_addr") or "").strip()
+    return own if own and _HOST_RE.match(own) else ovpn_addr()
+
+
+def ovpn_bytes(path, u=None):
     with open(path, encoding="utf-8") as f:
         data = f.read()
-    a = ovpn_addr()
+    a = user_ovpn_addr(u)
     if a:
         data = re.sub(r"^remote (\S+) (\d+)", lambda m: f"remote {a} {m.group(2)}", data, count=1, flags=re.M)
     return data.encode("utf-8")
+
+
+_DNS_LINE = re.compile(r'^[ \t]*push[ \t]+"dhcp-option[ \t]+DNS[ \t]+([^"\s]+)[ \t]*"[ \t]*\r?\n?', re.M)
+IPC = {"v": "", "t": 0.0}
+IPLOCK = threading.Lock()
+IP_URLS = ("https://api.ipify.org", "https://ifconfig.me/ip", "https://icanhazip.com")
+
+
+def read_dns():
+    try:
+        with open(f"{SERVER_DIR}/server.conf") as f:
+            return _DNS_LINE.findall(f.read())
+    except OSError:
+        return []
+
+
+def parse_dns(raw):
+    out = []
+    for x in re.split(r"[,\s]+", (raw or "").strip()):
+        if not x:
+            continue
+        try:
+            ipaddress.IPv4Address(x)
+        except ValueError:
+            return None
+        if x not in out:
+            out.append(x)
+    return out if 1 <= len(out) <= 4 else None
+
+
+def conf_with_dns(txt, servers):
+    block = "".join(f'push "dhcp-option DNS {x}"\n' for x in servers)
+    m = _DNS_LINE.search(txt)
+    if not m:
+        return txt.rstrip("\n") + "\n" + block
+    return txt[:m.start()] + block + _DNS_LINE.sub("", txt[m.start():])
+
+
+def write_conf(path, txt):
+    tmp = path + ".tmp"
+    with open(tmp, "w") as f:
+        f.write(txt)
+    shutil.copymode(path, tmp)
+    os.replace(tmp, path)
+
+
+def set_dns(servers):
+    old, done = {}, []
+    try:
+        for fn in sorted(os.listdir(SERVER_DIR)):
+            if not fn.endswith(".conf"):
+                continue
+            p = f"{SERVER_DIR}/{fn}"
+            with open(p) as f:
+                txt = f.read()
+            if fn == "server.conf" or "ccd-exclusive" in txt:
+                old[p] = txt
+        for p, txt in old.items():
+            write_conf(p, conf_with_dns(txt, servers))
+            done.append(p)
+    except OSError as e:
+        for p in done:
+            try:
+                write_conf(p, old[p])
+            except OSError:
+                pass
+        return False, str(e)
+    return True, ""
+
+
+def restart_for_dns():
+    with LOCK:
+        names = [u["name"] for u in load_state()["users"] if not u.get("blocked")]
+    for n in ["server"] + names:
+        if is_active(n):
+            run(["systemctl", "restart", f"openvpn-server@{n}"])
+            time.sleep(1.5)
+
+
+def read_uptime():
+    try:
+        with open("/proc/uptime") as f:
+            return float(f.read().split()[0])
+    except (OSError, ValueError, IndexError):
+        return 0.0
+
+
+def fmt_uptime(sec):
+    sec = int(sec)
+    return tr("up_fmt", d=sec // 86400, h=sec % 86400 // 3600, m=sec % 3600 // 60)
+
+
+def os_name():
+    try:
+        with open("/etc/os-release") as f:
+            m = re.search(r'^PRETTY_NAME="?([^"\n]+)"?', f.read(), re.M)
+        if m:
+            return m.group(1)
+    except OSError:
+        pass
+    u = os.uname()
+    return f"{u.sysname} {u.release}"
+
+
+def lookup_exit_ip():
+    for url in IP_URLS:
+        try:
+            with urlopen(Request(url, headers={"User-Agent": "curl/8"}), timeout=3) as r:
+                v = r.read(64).decode().strip()
+            ipaddress.ip_address(v)
+            return v, True
+        except Exception:
+            continue
+    try:
+        with open(f"{SERVER_DIR}/client-common.txt") as f:
+            m = re.search(r"^remote (\S+) \d+", f.read(), re.M)
+        if m and re.fullmatch(r"[0-9.]+", m.group(1)):
+            return m.group(1), False
+    except OSError:
+        pass
+    sk = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    try:
+        sk.connect(("8.8.8.8", 80))
+        return sk.getsockname()[0], False
+    except OSError:
+        return "", False
+    finally:
+        sk.close()
+
+
+def exit_ip(wait=True):
+    if IPC["v"] and time.time() - IPC["t"] < 600:
+        return IPC["v"]
+    if not IPLOCK.acquire(blocking=wait):
+        return IPC["v"]
+    try:
+        if IPC["v"] and time.time() - IPC["t"] < 600:
+            return IPC["v"]
+        v, web = lookup_exit_ip()
+        if v:
+            IPC["v"], IPC["t"] = v, time.time() - (0 if web else 540)
+        return IPC["v"]
+    finally:
+        IPLOCK.release()
 
 
 DUMMY_HASH = generate_password_hash("not-a-real-password")
@@ -2252,7 +2451,7 @@ def login():
                 FAILS.pop(ip, None)
                 session.clear()
                 session["ok"], session["user"] = True, uname
-                return redirect(url_for("index"))
+                return redirect(url_for("dashboard"))
             cnt += 1
             FAILS[ip] = (cnt, time.time() + 300 if cnt >= 5 else 0)
             flash(tr("err_login"), "err")
@@ -2270,7 +2469,7 @@ def page(body, **ctx):
     return render_template_string(TOP + body + BOTTOM, **ctx)
 
 
-@app.route("/")
+@app.route("/users")
 @login_required
 def index():
     with LOCK:
@@ -2297,9 +2496,188 @@ def index():
             stats["unlimited"] += 1
     host = re.sub(r":\d+$", "", request.host)
     px_state, ex_state = feature_state()
-    return page(DASH_HTML, active="dash", users=users, nid=free_id(st), px_state=px_state, ex_state=ex_state,
+    return page(DASH_HTML, active="users", users=users, nid=free_id(st), px_state=px_state, ex_state=ex_state,
                 portal_base=PORTAL_BASE_URL or f"http://{host}:{PORTAL_PORT}",
                 port=next_port(st), stats=stats, ready=host_ready(), adopt=adoptable_clients(st))
+
+
+HIST_FILE = f"{BASE}/usage_hist.json"
+HIST = {}
+HLOCK = threading.Lock()
+HB = 600
+HKEEP = 30 * 86400
+HRANGES = {"24h": (86400, 1800), "3d": (3 * 86400, 7200), "7d": (7 * 86400, 21600), "30d": (30 * 86400, 86400)}
+LAT = {"v": None, "t": 0.0}
+LATLOCK = threading.Lock()
+PANEL_SERVICE = os.environ.get("PANEL_SERVICE", "ovpn-panel")
+
+
+def hist_load():
+    try:
+        with open(HIST_FILE) as f:
+            return {int(k): int(v) for k, v in json.load(f).items()}
+    except (OSError, ValueError, AttributeError):
+        return {}
+
+
+def usage_total():
+    with SLOCK:
+        return sum(int(r.get("up", 0)) + int(r.get("down", 0)) for r in USAGE.values())
+
+
+def hist_loop():
+    HIST.update(hist_load())
+    last, saved = None, time.time()
+    while True:
+        time.sleep(30)
+        try:
+            cur, now = usage_total(), time.time()
+            if last is not None and cur > last:
+                b = int(now // HB * HB)
+                with HLOCK:
+                    HIST[b] = HIST.get(b, 0) + (cur - last)
+            last = cur
+            if now - saved >= 60:
+                with HLOCK:
+                    for k in [k for k in HIST if k < now - HKEEP]:
+                        HIST.pop(k)
+                    data = dict(HIST)
+                tmp = HIST_FILE + ".tmp"
+                with open(tmp, "w") as f:
+                    json.dump(data, f)
+                os.replace(tmp, HIST_FILE)
+                saved = now
+        except Exception as e:
+            print("hist error:", e, flush=True)
+
+
+def hist_series(rng):
+    span, step = HRANGES.get(rng, HRANGES["24h"])
+    n = span // step
+    end = int(time.time() // step) * step + step
+    start = end - n * step
+    vals = [0] * n
+    with HLOCK:
+        for k, v in HIST.items():
+            if start <= k < end:
+                vals[(k - start) // step] += v
+    return [[start + i * step, vals[i]] for i in range(n)]
+
+
+def latency_ms():
+    if time.time() - LAT["t"] < 5:
+        return LAT["v"]
+    if not LATLOCK.acquire(blocking=False):
+        return LAT["v"]
+    try:
+        best = None
+        for host, port in (("1.1.1.1", 443), ("8.8.8.8", 53), ("9.9.9.9", 443)):
+            t0 = time.perf_counter()
+            try:
+                socket.create_connection((host, port), timeout=2).close()
+            except OSError:
+                continue
+            best = max(1, round((time.perf_counter() - t0) * 1000))
+            break
+        LAT["v"], LAT["t"] = best, time.time()
+        return best
+    finally:
+        LATLOCK.release()
+
+
+def online_count():
+    names = {u["name"] for u in load_state()["users"]}
+    with SLOCK:
+        return sum(1 for n in names if CONN.get(n, {}).get("online"))
+
+
+def server_logs(n=50):
+    try:
+        r = run(["journalctl", "-u", PANEL_SERVICE, "-u", "openvpn-server@*", "-n", str(n), "--no-pager", "-o", "short"],
+                timeout=8)
+    except subprocess.TimeoutExpired:
+        return []
+    lines = [l[:400] for l in r.stdout.splitlines() if l.strip() and not l.startswith("-- ")]
+    return lines[-n:][::-1]
+
+
+def restart_panel():
+    time.sleep(1)
+    if run(["systemctl", "is-active", PANEL_SERVICE]).stdout.strip() == "active":
+        try:
+            subprocess.Popen(["systemctl", "restart", "--no-block", PANEL_SERVICE], start_new_session=True,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            return
+        except OSError:
+            pass
+    os.execv(sys.executable, [sys.executable] + sys.argv)
+
+
+@app.route("/")
+@login_required
+def dashboard():
+    with LOCK:
+        sync_existing()
+        st = load_state()
+    up = read_uptime()
+    return page(DASHBOARD_HTML, active="dash", total=len(st["users"]), nid=free_id(st), port=next_port(st),
+                ready=host_ready(), ip=exit_ip(False), dns=read_dns(), osn=os_name(), up=up, up_txt=fmt_uptime(up),
+                online=online_count(), lat=LAT["v"])
+
+
+@app.route("/api/dash")
+@login_required
+def api_dash():
+    return jsonify(ip=exit_ip(), up=read_uptime(), users=len(load_state()["users"]), online=online_count(),
+                   lat=latency_ms())
+
+
+@app.route("/api/dash/chart")
+@login_required
+def api_dash_chart():
+    rng = request.args.get("range", "24h")
+    return jsonify(points=hist_series(rng if rng in HRANGES else "24h"))
+
+
+@app.route("/api/dash/logs")
+@login_required
+def api_dash_logs():
+    return jsonify(lines=server_logs())
+
+
+@app.route("/dashboard/restart", methods=["POST"])
+@login_required
+def dash_restart():
+    threading.Thread(target=restart_panel, daemon=True).start()
+    return jsonify(ok=True)
+
+
+@app.route("/dashboard/dns", methods=["POST"])
+@login_required
+def dash_dns():
+    servers = parse_dns(request.form.get("dns", ""))
+    if not host_ready():
+        flash(tr("f_nohost"), "err")
+    elif not servers:
+        flash(tr("f_dns_bad"), "err")
+    elif servers == read_dns():
+        flash(tr("f_dns_same"), "ok")
+    else:
+        with LOCK:
+            ok, err = set_dns(servers)
+        if ok:
+            threading.Thread(target=restart_for_dns, daemon=True).start()
+            flash(tr("f_dns_saved"), "ok")
+        else:
+            flash(tr("f_dns_fail", err=err), "err")
+    return redirect(url_for("dashboard"))
+
+
+@app.after_request
+def back_to_dashboard(resp):
+    if request.endpoint == "create" and request.form.get("back") == "dash" and resp.status_code in (301, 302, 303):
+        resp.headers["Location"] = url_for("dashboard")
+    return resp
 
 
 @app.route("/network")
@@ -2482,6 +2860,7 @@ def set_speed(name):
 def edit_user(name):
     f = request.form
     proto = f.get("proto", "udp")
+    oa = (f.get("ovpn_addr") or "").strip()
     try:
         new_id, new_port = int(f.get("id", "")), int(f.get("port", ""))
         speed = round(float(f.get("speed") or 0), 2)
@@ -2507,6 +2886,8 @@ def edit_user(name):
             err = tr("f_speed")
         elif not (0 <= daily <= 1e6 and 0 <= total <= 1e6):
             err = tr("f_edit_lim")
+        elif oa and not ovpn_addr_valid(oa):
+            err = tr("f_oa_bad")
         elif (new_port, proto) != (u["port"], old_proto):
             err = port_error(others, new_port, proto)
         if err:
@@ -2520,6 +2901,7 @@ def edit_user(name):
             if u.get("blocked"):
                 run(["systemctl", "disable", "--now", f"openvpn-server@{name}"])
         u["speed"], u["limit_daily"], u["limit_total"] = speed or None, daily or None, total or None
+        u["ovpn_addr"] = oa or None
         px_st, ex_st = feature_state()
         if px_st == "ok":
             u["px"] = f.get("px") == "1"
@@ -2960,7 +3342,7 @@ def portal_view(token):
         server = m.group(1) if m else ""
     except OSError:
         pass
-    server = ovpn_addr() or server
+    server = user_ovpn_addr(u) or server
     return jsonify(name=u["name"], proto=u.get("proto", "udp"), port=u["port"], server=server,
                    speed=u.get("speed"), created=u["created"], expires=u.get("expires"), now=time.time(),
                    blocked=u.get("blocked"), online=bool(cn.get("online")), ip=cn.get("ip"),
@@ -2990,7 +3372,7 @@ def portal_ovpn(token):
             build_ovpn(u["name"], u["port"], path, u.get("proto", "udp"))
         except Exception:
             return jsonify(error="no_file"), 404
-    resp = send_file(io.BytesIO(ovpn_bytes(path)), mimetype="application/x-openvpn-profile", as_attachment=True,
+    resp = send_file(io.BytesIO(ovpn_bytes(path, u)), mimetype="application/x-openvpn-profile", as_attachment=True,
                      download_name=f"{u['name']}.ovpn")
     resp.headers["Cache-Control"] = "no-store"
     return resp
@@ -3023,7 +3405,7 @@ def download(name):
             build_ovpn(name, u["port"], path, u.get("proto", "udp"))
         except Exception:
             abort(404)
-    return send_file(io.BytesIO(ovpn_bytes(path)), as_attachment=True, download_name=f"{name}.ovpn")
+    return send_file(io.BytesIO(ovpn_bytes(path, u)), as_attachment=True, download_name=f"{name}.ovpn")
 
 
 @app.route("/api/port_check")
@@ -3084,6 +3466,11 @@ CSS = """
 --nav:rgba(10,14,31,.8);--navs:#0e1330;--dn:#22d3ee;--upc:#a45cff;--side:252px}
 @media (prefers-color-scheme:light){:root{--bg:#eef1fb;--card:rgba(255,255,255,.78);--bd:rgba(20,30,80,.1);
 --tx:#1a2140;--mut:#64709a;--inp:rgba(20,30,80,.05);--nav:rgba(244,246,253,.85);--navs:#f4f6fd}}
+html[data-theme=dark]{--bg:#0a0e1f;--card:rgba(255,255,255,.055);--bd:rgba(255,255,255,.1);--tx:#eaeefb;--mut:#8f9bbd;
+--inp:rgba(255,255,255,.06);--nav:rgba(10,14,31,.8);--navs:#0e1330}
+html[data-theme=light]{--bg:#eef1fb;--card:rgba(255,255,255,.78);--bd:rgba(20,30,80,.1);--tx:#1a2140;--mut:#64709a;
+--inp:rgba(20,30,80,.05);--nav:rgba(244,246,253,.85);--navs:#f4f6fd}
+body,.card,.stat,.dcard,.side,.topbar,.dlg{transition:background-color .35s,border-color .35s,color .35s}
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{margin:0;min-height:100vh;color:var(--tx);background:var(--bg);overflow-x:hidden;
@@ -3263,6 +3650,66 @@ width:calc(100% - 28px);max-width:540px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}.span2{grid-column:1/-1}
 .dwarn{display:flex;gap:8px;align-items:flex-start;margin:14px 0;font-size:12px;color:var(--warn);line-height:1.6}
 .dacts{display:flex;gap:8px;flex-wrap:wrap}.dacts .btn{flex:1 1 auto}
+.tsw{position:relative;width:62px;height:32px;border-radius:99px;border:1px solid var(--bd);background:var(--inp);cursor:pointer;
+padding:0;flex:none;overflow:hidden;transition:background-color .4s,border-color .4s}
+.tsw:hover{border-color:var(--p1)}
+.tsw .k{position:absolute;top:3px;left:3px;width:24px;height:24px;border-radius:50%;color:#fff;
+background:linear-gradient(135deg,var(--p1),var(--p2));box-shadow:0 2px 10px rgba(109,124,255,.55);
+transition:transform .5s cubic-bezier(.68,-.4,.27,1.4)}
+.tsw .k svg{position:absolute;top:50%;left:50%;margin:-7px 0 0 -7px;transition:transform .55s cubic-bezier(.68,-.4,.27,1.4),opacity .3s}
+.tsw .moon{opacity:1;transform:none}
+.tsw .sun{opacity:0;transform:rotate(-120deg) scale(.3)}
+html[data-theme=light] .tsw .k{transform:translateX(30px)}
+html[data-theme=light] .tsw .moon{opacity:0;transform:rotate(120deg) scale(.3)}
+html[data-theme=light] .tsw .sun{opacity:1;transform:none}
+.trow{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.dtop{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px}
+.sc{position:relative;overflow:hidden;border-radius:18px;padding:18px;border:1px solid var(--bd);min-width:0;
+background:linear-gradient(135deg,rgba(var(--c),.24),rgba(var(--c),.05)),var(--card)}
+.sc.c1{--c:109,124,255}.sc.c2{--c:52,211,153}.sc.c3{--c:164,92,255}.sc.c4{--c:34,211,238}
+.sc .ico{display:block;color:rgb(var(--c));margin-bottom:8px}
+.sc b{display:block;font-size:26px;line-height:1.25;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+.sc b.mono{font-size:21px;overflow-wrap:normal;white-space:nowrap}
+.sc .lb{display:flex;align-items:center;gap:6px;color:var(--mut);font-size:13px;margin-top:2px}
+.sc .bg{position:absolute;inset-inline-end:-16px;bottom:-20px;opacity:.09;color:rgb(var(--c));pointer-events:none}
+.sc .cp{position:absolute;inset-inline-end:12px;top:12px}
+.led{width:9px;height:9px;border-radius:50%;background:var(--ok);box-shadow:0 0 8px var(--ok);flex:none;transition:.3s}
+.led.warn{background:var(--warn);box-shadow:0 0 8px var(--warn)}.led.bad{background:var(--bad);box-shadow:0 0 8px var(--bad)}
+.chh{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.chh h3{margin:0}
+.rng{display:flex;gap:8px;flex-wrap:wrap}
+.rng button{border:1px solid var(--bd);background:var(--inp);color:var(--tx);border-radius:99px;padding:7px 18px;font:inherit;font-size:13px;cursor:pointer;transition:.2s}
+.rng button:hover{border-color:var(--p1)}
+.rng button.on{background:linear-gradient(135deg,var(--p1),var(--p2));color:#fff;border-color:transparent;box-shadow:0 6px 16px rgba(109,124,255,.35)}
+.chwrap{position:relative;height:300px}
+.chwrap canvas{position:absolute;inset:0;width:100%;height:100%;cursor:crosshair;touch-action:pan-y}
+.chno{position:absolute;inset:0;display:none;align-items:center;justify-content:center;color:var(--mut);font-size:14px;pointer-events:none}
+.dmid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.dmid .card{margin:0;display:flex;flex-direction:column;gap:12px}
+.dmid .card h3{margin:0}
+.ir{display:flex;align-items:center;gap:10px;font-size:14px;min-width:0}
+.ir .k{color:var(--mut);white-space:nowrap}
+.ir .v{font-weight:700;min-width:0;overflow-wrap:anywhere}
+.ir .v a{color:var(--p1);text-decoration:none}.ir .v a:hover{text-decoration:underline}
+.ir .ic{color:var(--p1)}
+.dnsbox{display:flex;gap:8px;align-items:stretch}
+.dnsv{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;padding:12px;border-radius:12px;background:var(--inp);
+border:1px solid var(--bd);font-weight:700;font-size:16px;word-break:break-all;text-align:center}
+.dnsbox .btn{padding:0 16px}
+.cap{color:var(--mut);font-size:13px;text-align:center}
+.acts2{display:flex;flex-direction:column;gap:10px;justify-content:center;flex:1}
+.acts2 .btn{padding:15px;font-size:15px;width:100%}
+.btn.line{background:transparent;color:var(--tx);border:1px solid var(--p1)}
+.btn.line:hover{background:rgba(109,124,255,.12)}
+.btn:disabled{opacity:.6;cursor:wait}
+.logh{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:12px}
+.logh h3{margin:0}
+.logbox{margin:0;padding:12px 14px;border-radius:12px;background:var(--inp);border:1px solid var(--bd);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+font-size:12.5px;line-height:1.8;direction:ltr;text-align:left;white-space:pre-wrap;word-break:break-all;overflow:auto;max-height:150px;color:var(--tx)}
+.dlg.wide{max-width:900px}
+.dlg.wide .logbox{max-height:62vh}
+@media(max-width:980px){.dtop{grid-template-columns:repeat(2,1fr)}.dmid{grid-template-columns:1fr}}
+@media(max-width:480px){.dtop{grid-template-columns:1fr}.chwrap{height:240px}}
 @media(max-width:1180px){.speeds{grid-template-columns:1fr 1fr}}
 @media(max-width:980px){
  .topbar{display:flex;position:sticky;top:0;z-index:40;height:62px;align-items:center;justify-content:space-between;
@@ -3307,9 +3754,10 @@ width:calc(100% - 28px);max-width:540px;box-shadow:0 30px 80px rgba(0,0,0,.5)}
 
 LOGIN_HTML = """<!doctype html><html lang="{{ lang }}" dir="{{ dirn }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>{{ t('login_title') }} | {{ app }}</title>
+<script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light'&&t!=='dark')t=window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.setAttribute('data-theme',t)})();</script>
 {{ css|safe }}</head><body>
 <div style="max-width:400px;margin:0 auto;padding:10vh 16px 0">
-<div style="text-align:end;margin-bottom:12px"><a class="btn ghost sm" href="{{ url_for('set_lang', code='fa' if lang=='en' else 'en') }}">{{ ic('globe',16) }} {{ t('lang_name') }}</a></div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><button type="button" class="tsw" aria-label="{{ t('theme') }}" title="{{ t('theme') }}"><span class="k">{{ ic('moon',14,'moon') }}{{ ic('sun',14,'sun') }}</span></button><a class="btn ghost sm" href="{{ url_for('set_lang', code='fa' if lang=='en' else 'en') }}">{{ ic('globe',16) }} {{ t('lang_name') }}</a></div>
 <div class="card" style="text-align:center;padding:32px 24px">
 <div class="logo" style="margin:0 auto 14px;width:60px;height:60px;border-radius:19px">{{ ic('shield',30) }}</div>
 <h2 style="margin:0 0 4px">Gass<span style="color:var(--p1)">Light</span></h2>
@@ -3318,19 +3766,22 @@ LOGIN_HTML = """<!doctype html><html lang="{{ lang }}" dir="{{ dirn }}"><head><m
 <form method="post" class="stack" style="text-align:start">
 <div><label>{{ t('login_user') }}</label><input name="username" autocomplete="username" autocapitalize="none" autofocus required></div>
 <div><label>{{ t('login_pw') }}</label><input type="password" name="password" autocomplete="current-password" required></div>
-<button class="btn block">{{ ic('logout',16) }} {{ t('login_btn') }}</button></form></div></div></body></html>"""
+<button class="btn block">{{ ic('logout',16) }} {{ t('login_btn') }}</button></form></div></div><script>(function(){document.querySelectorAll('.tsw').forEach(function(b){b.addEventListener('click',function(){var d=document.documentElement,n=d.getAttribute('data-theme')==='light'?'dark':'light';d.setAttribute('data-theme',n);try{localStorage.setItem('theme',n)}catch(e){}})})})();</script></body></html>"""
 
 TOP = """<!doctype html><html lang="{{ lang }}" dir="{{ dirn }}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>{{ app }}</title>
+<script>(function(){var t;try{t=localStorage.getItem('theme')}catch(e){}if(t!=='light'&&t!=='dark')t=window.matchMedia&&matchMedia('(prefers-color-scheme: light)').matches?'light':'dark';document.documentElement.setAttribute('data-theme',t)})();</script>
 {{ css|safe }}</head><body>
 <header class="topbar">
-<a class="brand" href="{{ url_for('index') }}"><div class="logo">{{ ic('shield',20) }}</div><span>Gass<em>Light</em></span></a>
-<button class="burger" id="bg" type="button" aria-label="{{ t('menu') }}" aria-expanded="false"><span></span><span></span><span></span></button>
+<a class="brand" href="{{ url_for('dashboard') }}"><div class="logo">{{ ic('shield',20) }}</div><span>Gass<em>Light</em></span></a>
+<div style="display:flex;align-items:center;gap:10px"><button type="button" class="tsw" aria-label="{{ t('theme') }}" title="{{ t('theme') }}"><span class="k">{{ ic('moon',14,'moon') }}{{ ic('sun',14,'sun') }}</span></button>
+<button class="burger" id="bg" type="button" aria-label="{{ t('menu') }}" aria-expanded="false"><span></span><span></span><span></span></button></div>
 </header>
 <aside class="side" id="menu">
-<a class="brand side-brand" href="{{ url_for('index') }}"><div class="logo">{{ ic('shield',20) }}</div><span>Gass<em>Light</em></span></a>
+<a class="brand side-brand" href="{{ url_for('dashboard') }}"><div class="logo">{{ ic('shield',20) }}</div><span>Gass<em>Light</em></span></a>
 <nav class="links">
-<a href="{{ url_for('index') }}" class="{{ 'on' if active=='dash' }}">{{ ic('home') }}<span>{{ t('nav_dash') }}</span></a>
+<a href="{{ url_for('dashboard') }}" class="{{ 'on' if active=='dash' }}">{{ ic('home') }}<span>{{ t('nav_dash') }}</span></a>
+<a href="{{ url_for('index') }}" class="{{ 'on' if active=='users' }}">{{ ic('users') }}<span>{{ t('nav_users') }}</span></a>
 <a href="{{ url_for('network') }}" class="{{ 'on' if active=='net' }}">{{ ic('wifi') }}<span>{{ t('nav_net') }}</span></a>
 <a href="{{ url_for('usage') }}" class="{{ 'on' if active=='usage' }}">{{ ic('bars') }}<span>{{ t('nav_usage') }}</span></a>
 <a href="{{ url_for('backup_page') }}" class="{{ 'on' if active=='backup' }}">{{ ic('drive') }}<span>{{ t('nav_backup') }}</span></a>
@@ -3345,6 +3796,7 @@ TOP = """<!doctype html><html lang="{{ lang }}" dir="{{ dirn }}"><head><meta cha
 </nav>
 <div class="side-foot">
 <div class="me">{{ ic('user',16) }}<span>{{ t('signed_as') }} <b>{{ me }}</b></span></div>
+<div class="trow me"><span>{{ t('theme') }}</span><button type="button" class="tsw" aria-label="{{ t('theme') }}" title="{{ t('theme') }}"><span class="k">{{ ic('moon',14,'moon') }}{{ ic('sun',14,'sun') }}</span></button></div>
 <a class="btn ghost sm" href="{{ url_for('set_lang', code='fa' if lang=='en' else 'en') }}">{{ ic('globe',16) }} {{ t('lang_name') }}</a>
 <a class="btn ghost sm" href="{{ url_for('logout') }}">{{ ic('logout',16) }} {{ t('logout') }}</a>
 </div></aside>
@@ -3361,7 +3813,7 @@ document.addEventListener('click',function(e){if(!m.contains(e.target))set(false
 window.addEventListener('resize',function(){if(window.innerWidth>980)set(false)});
 var g=document.getElementById('advgrp'),gb=document.getElementById('advbtn');
 if(g&&gb)gb.addEventListener('click',function(){var o=!g.classList.contains('open');g.classList.toggle('open',o);gb.setAttribute('aria-expanded',o)});})();
-</script></body></html>"""
+</script><script>(function(){document.querySelectorAll('.tsw').forEach(function(b){b.addEventListener('click',function(){var d=document.documentElement,n=d.getAttribute('data-theme')==='light'?'dark':'light';d.setAttribute('data-theme',n);try{localStorage.setItem('theme',n)}catch(e){}})})})();</script></body></html>"""
 
 DASH_HTML = """
 {% if not ready %}<div class="warnbox">{{ ic('alert',18) }}<span>{{ t('warn_nohost') }}</span></div>{% endif %}
@@ -3433,7 +3885,7 @@ onsubmit='return confirm({{ t("confirm_regen_link", name=u.name)|tojson }})'><bu
 <a class="btn sm" href="{{ url_for('download', name=u.name) }}">{{ ic('download',15) }} {{ t('dl_ovpn') }}</a>
 <button type="button" class="btn ghost sm" data-edit data-name="{{ u.name }}" data-id="{{ u.id }}" data-port="{{ u.port }}"
  data-proto="{{ u.proto }}" data-px="{{ 1 if u.px else 0 }}" data-ex="{{ 1 if u.ex else 0 }}" data-speed="{{ '%g'|format(u.speed) if u.speed else 0 }}"
- data-daily="{{ '%g'|format(u.limit_daily) if u.limit_daily else 0 }}" data-total="{{ '%g'|format(u.limit_total) if u.limit_total else 0 }}">{{ ic('edit',15) }} {{ t('edit_btn') }}</button>
+ data-daily="{{ '%g'|format(u.limit_daily) if u.limit_daily else 0 }}" data-total="{{ '%g'|format(u.limit_total) if u.limit_total else 0 }}" data-oa="{{ u.ovpn_addr or '' }}">{{ ic('edit',15) }} {{ t('edit_btn') }}</button>
 <form class="ext" method="post" action="{{ url_for('extend', name=u.name) }}">
 <input name="days" type="number" inputmode="numeric" min="1" placeholder="{{ t('days_ph') }}" required><button class="btn ghost sm">{{ ic('plus',15) }} {{ t('extend') }}</button></form>
 {% if u.left_txt %}<form class="mini" method="post" action="{{ url_for('unlimit', name=u.name) }}">
@@ -3455,6 +3907,8 @@ onsubmit='return confirm({{ t("confirm_del", name=u.name)|tojson }})'><button cl
 <div class="span2"><label>{{ t('edit_speed') }}</label><input name="speed" type="number" min="0" max="10000" step="any"></div>
 <div><label>{{ t('edit_daily') }}</label><input name="daily" type="number" min="0" max="1000000" step="any"></div>
 <div><label>{{ t('edit_total') }}</label><input name="total" type="number" min="0" max="1000000" step="any"></div>
+<div class="span2"><label>{{ t('oa_title') }}</label><input name="ovpn_addr" placeholder="{{ t('oa_ph') }}" autocomplete="off" spellcheck="false" style="direction:ltr">
+<p class="hint" style="padding-inline-start:0;margin:6px 0 0">{{ t('eo_hint') }}</p></div>
 </div>
 <div class="rt"><div class="rt-h">{{ ic('globe',16) }} {{ t('ux_title') }}</div>
 <label class="chk"><input type="checkbox" name="px" value="1" id="e_px" {% if px_state != 'ok' %}disabled{% endif %}><span>{{ t('ux_px') }}{% if px_state == 'off' %}<small class="chkh">{{ t('ux_off') }}</small>{% elif px_state == 'all' %}<small class="chkh">{{ t('ux_all') }}</small>{% endif %}</span></label>
@@ -3494,7 +3948,7 @@ var PXS={{ px_state|tojson }},EXS={{ ex_state|tojson }};
 var dlg=document.getElementById('ed'),form=document.getElementById('edf'),els=form.elements,rst=document.getElementById('edr'),cur='';
 document.querySelectorAll('[data-edit]').forEach(function(b){b.addEventListener('click',function(){
  var d=b.dataset;cur=d.name;form.action='/edit/'+d.name;document.getElementById('edn').textContent=d.name;
- els['id'].value=d.id;els['port'].value=d.port;els['speed'].value=d.speed;els['daily'].value=d.daily;els['total'].value=d.total;
+ els['id'].value=d.id;els['port'].value=d.port;els['speed'].value=d.speed;els['daily'].value=d.daily;els['total'].value=d.total;els['ovpn_addr'].value=d.oa||'';
  document.getElementById('e_'+d.proto).checked=true;rst.formAction='/reset/'+d.name;
  document.getElementById('e_px').checked=PXS==='all'||d.px==='1';document.getElementById('e_ex').checked=EXS==='all'||d.ex==='1';
  dlg.showModal();});});
@@ -3514,6 +3968,195 @@ function copyText(txt){
 document.querySelectorAll('[data-copy]').forEach(function(b){b.addEventListener('click',function(){
  copyText(b.dataset.copy).then(function(){var s=b.querySelector('span'),old=s?s.textContent:null;b.classList.add('done');if(s)s.textContent=DONE;
   setTimeout(function(){b.classList.remove('done');if(s)s.textContent=old},1500)}).catch(function(){window.prompt('',b.dataset.copy)})})});
+})();
+</script>
+"""
+
+DASHBOARD_HTML = """
+{% if not ready %}<div class="warnbox">{{ ic('alert',18) }}<span>{{ t('warn_nohost') }}</span></div>{% endif %}
+
+<div class="dtop">
+<div class="sc c4"><span class="ico">{{ ic('server',34) }}</span><b class="mono" id="dip"><bdi dir="ltr">{{ ip or '...' }}</bdi></b><div class="lb">{{ t('dash_ip') }}</div>
+<button type="button" class="btn ghost sm ico cp" id="cpip" title="{{ t('dash_copy') }}" aria-label="{{ t('dash_copy') }}">{{ ic('copy',14) }}</button><span class="bg">{{ ic('server',120) }}</span></div>
+<div class="sc c3"><span class="ico">{{ ic('users',34) }}</span><b id="dtot">{{ total }}</b><div class="lb">{{ t('dash_users') }}</div><span class="bg">{{ ic('users',120) }}</span></div>
+<div class="sc c2"><span class="ico">{{ ic('globe',34) }}</span><b><bdi dir="ltr"><span id="dlat">{{ lat if lat is not none else '—' }}</span> ms</bdi></b>
+<div class="lb"><span>{{ t('dash_latency') }}</span><i class="led{% if lat is none %} bad{% elif lat >= 400 %} bad{% elif lat >= 150 %} warn{% endif %}" id="dled"></i></div><span class="bg">{{ ic('globe',120) }}</span></div>
+<div class="sc c1"><span class="ico">{{ ic('users',34) }}</span><b id="don">{{ online }}</b><div class="lb"><span>{{ t('dash_online') }}</span><i class="led"></i></div><span class="bg">{{ ic('activity',120) }}</span></div>
+</div>
+
+<div class="card"><div class="chh"><h3>{{ ic('bars',20) }} {{ t('dash_chart') }}</h3>
+<div class="rng" id="rng"><button type="button" data-r="24h" class="on">{{ t('r24h') }}</button><button type="button" data-r="3d">{{ t('r3d') }}</button>
+<button type="button" data-r="7d">{{ t('r7d') }}</button><button type="button" data-r="30d">{{ t('r30d') }}</button></div></div>
+<div class="chwrap"><canvas id="ch"></canvas><div class="chno" id="chno">{{ t('dash_nodata') }}</div></div></div>
+
+<div class="dmid">
+<div class="card"><div class="acts2">
+<button type="button" class="btn" id="rsb">{{ ic('refresh',18) }} <span>{{ t('dash_restart') }}</span></button>
+<button type="button" class="btn line" id="addb">{{ ic('user-plus',18) }} <span>{{ t('dash_add') }}</span></button></div></div>
+<div class="card"><h3>{{ ic('globe',18) }} {{ t('dash_dns') }}</h3>
+<div class="dnsbox"><div class="dnsv mono">{% if dns %}{{ dns|join(', ') }}{% else %}{{ t('dash_dns_none') }}{% endif %}</div>
+<button type="button" class="btn" id="dnsb" title="{{ t('dash_dns_edit') }}" aria-label="{{ t('dash_dns_edit') }}">{{ ic('edit',18) }}</button></div>
+<div class="cap">{{ t('dash_dns_default') }}</div></div>
+<div class="card"><h3>{{ ic('server',18) }} {{ t('dash_info') }}</h3>
+<div class="ir">{{ ic('clock',18) }}<span class="k">{{ t('dash_uptime') }}:</span><span class="v" id="dup">{{ up_txt }}</span></div>
+<div class="ir">{{ ic('cpu',18) }}<span class="k">{{ t('dash_os') }}:</span><span class="v">{{ osn }}</span></div>
+<div class="ir">{{ ic('user',18) }}<span class="k">{{ t('dash_admin') }}:</span><span class="v">{{ me }}</span></div>
+<div class="ir">{{ ic('github',18) }}<span class="k">GitHub:</span><span class="v"><a class="mono" href="https://github.com/mahanamini/openvpn" target="_blank" rel="noopener">github.com/mahanamini/openvpn</a></span></div></div>
+</div>
+
+<div class="card"><div class="logh"><h3>{{ ic('activity',18) }} {{ t('dash_logs') }}</h3>
+<button type="button" class="btn sm" id="lgb">{{ ic('external',15) }} {{ t('dash_logs_view') }}</button></div>
+<pre class="logbox" id="lg">...</pre></div>
+
+<dialog id="lgd" class="dlg wide"><div class="dlg-in">
+<h3>{{ ic('activity',18) }} {{ t('dash_logs') }}</h3>
+<pre class="logbox" id="lgf">...</pre>
+<div class="dacts" style="margin-top:14px"><button type="button" class="btn ghost" id="lgc">{{ t('dash_close') }}</button></div></div></dialog>
+
+<dialog id="dnsd" class="dlg"><div class="dlg-in"><form method="post" action="{{ url_for('dash_dns') }}">
+<h3>{{ ic('edit',18) }} {{ t('dash_dns_title') }}</h3>
+<label>{{ t('dash_dns_label') }}</label>
+<input name="dns" value="{{ dns|join(', ') }}" placeholder="{{ t('dash_dns_ph') }}" autocomplete="off" spellcheck="false" style="direction:ltr" required>
+<div class="dwarn">{{ ic('alert',16) }}<span>{{ t('dash_dns_hint') }}</span></div>
+<div class="dacts"><button class="btn">{{ ic('check',16) }} {{ t('edit_save') }}</button><button type="button" class="btn ghost" id="dnsc">{{ t('edit_cancel') }}</button></div>
+</form></div></dialog>
+
+<dialog id="addd" class="dlg"><div class="dlg-in"><form method="post" action="{{ url_for('create') }}">
+<input type="hidden" name="back" value="dash"><input type="hidden" name="manual" id="a_manual" value="0">
+<h3>{{ ic('user-plus',18) }} {{ t('c_title') }}</h3>
+<div class="grid2">
+<div><label>{{ t('c_id') }}</label><div class="chip">#{{ nid }}</div></div>
+<div><label>{{ t('c_name') }}</label><input name="name" placeholder="ali" pattern="[A-Za-z0-9_-]{1,32}" autocapitalize="none" autocomplete="off" required></div>
+<div class="span2"><label>{{ t('c_proto') }}</label><div class="seg">
+<label><input type="radio" name="proto" value="udp" checked><span>UDP</span></label>
+<label><input type="radio" name="proto" value="tcp"><span>TCP</span></label></div></div>
+<div class="span2"><label>{{ t('c_port') }}</label>
+<div class="pwrap"><input id="a_port" name="port" type="number" inputmode="numeric" min="1" max="65535" value="{{ port }}" readonly>
+<button type="button" class="btn ghost sm" id="a_pbtn">{{ ic('edit',15) }} <span>{{ t('c_manual') }}</span></button></div>
+<span id="a_pmsg" style="display:block;font-size:12px;margin-top:4px;min-height:18px"></span></div>
+<div><label>{{ t('c_days') }}</label><input name="days" type="number" inputmode="numeric" min="0" max="3650" value="30"></div>
+<div><label>{{ t('c_speed') }}</label><input name="speed" type="number" inputmode="decimal" min="0" max="10000" step="any" value="0"></div>
+<div><label>{{ t('c_daily') }}</label><input name="daily" type="number" inputmode="decimal" min="0" max="1000000" step="any" value="0"></div>
+<div><label>{{ t('c_total') }}</label><input name="total" type="number" inputmode="decimal" min="0" max="1000000" step="any" value="0"></div>
+</div>
+<div class="dacts" style="margin-top:16px"><button class="btn">{{ ic('plus',16) }} {{ t('c_btn') }}</button><button type="button" class="btn ghost" id="a_c">{{ t('edit_cancel') }}</button></div>
+</form></div></dialog>
+
+<script>
+var I={{ jt('c_manual','c_auto','up_fmt','dash_restart_confirm','dash_restarting','dash_logs_none','dash_peak','copied')|tojson }},UP={{ up|tojson }},T0=Date.now();
+function $(i){return document.getElementById(i)}
+function fu(s){s=Math.floor(s);return I.up_fmt.replace('{d}',Math.floor(s/86400)).replace('{h}',Math.floor(s%86400/3600)).replace('{m}',Math.floor(s%3600/60))}
+setInterval(function(){$('dup').textContent=fu(UP+(Date.now()-T0)/1000)},1000);
+function sync(){fetch('/api/dash').then(function(r){return r.json()}).then(function(d){
+ if(d.error)return;UP=d.up;T0=Date.now();if(d.ip)$('dip').firstChild.textContent=d.ip;$('dtot').textContent=d.users;$('don').textContent=d.online;
+ $('dlat').textContent=d.lat==null?'—':d.lat;$('dled').className='led'+(d.lat==null||d.lat>=400?' bad':d.lat>=150?' warn':'');
+}).catch(function(){})}
+sync();setInterval(sync,5000);
+setTimeout(function(){document.querySelectorAll('.toast.ok').forEach(function(t){t.style.display='none'})},7000);
+(function(){
+var b=$('cpip');
+function copyText(txt){
+ if(navigator.clipboard&&window.isSecureContext)return navigator.clipboard.writeText(txt);
+ return new Promise(function(res,rej){var ta=document.createElement('textarea');ta.value=txt;ta.setAttribute('readonly','');
+  ta.style.cssText='position:fixed;top:0;left:0;opacity:0';document.body.appendChild(ta);ta.select();ta.setSelectionRange(0,99999);
+  var ok=false;try{ok=document.execCommand('copy')}catch(e){}document.body.removeChild(ta);ok?res():rej()})}
+b.addEventListener('click',function(){var v=$('dip').textContent.trim();copyText(v).then(function(){b.classList.add('done');setTimeout(function(){b.classList.remove('done')},1500)}).catch(function(){window.prompt('',v)})});
+})();
+(function(){
+var CH={pts:[],rng:'24h',hv:-1,l:64,r:16},cv=$('ch');
+function css(v){return getComputedStyle(document.documentElement).getPropertyValue(v).trim()}
+function fmtB(n){var u=['B','KB','MB','GB','TB'],i=0;while(n>=1024&&i<4){n/=1024;i++}return (i?n.toFixed(n>=100?0:2):Math.round(n))+' '+u[i]}
+function nice(m){if(m<=0)return 1048576;var k=Math.pow(10,Math.floor(Math.log(m)/Math.LN10)),q=m/k;return (q<=1?1:q<=2?2:q<=5?5:10)*k}
+function lab(ts){var d=new Date(ts*1000),o=CH.rng==='24h'?{hour:'2-digit',minute:'2-digit',hour12:false}:CH.rng==='3d'?{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit',hour12:false}:{day:'2-digit',month:'2-digit'};return d.toLocaleString('en-GB',o)}
+function rr(x,a,b,w,h,r){x.beginPath();x.moveTo(a+r,b);x.arcTo(a+w,b,a+w,b+h,r);x.arcTo(a+w,b+h,a,b+h,r);x.arcTo(a,b+h,a,b,r);x.arcTo(a,b,a+w,b,r);x.closePath()}
+function draw(){
+ var dpr=window.devicePixelRatio||1,w=cv.clientWidth,h=cv.clientHeight;
+ if(!w||!h)return;
+ cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);
+ var x=cv.getContext('2d');x.direction='ltr';x.setTransform(dpr,0,0,dpr,0,0);x.clearRect(0,0,w,h);
+ var pts=CH.pts,n=pts.length;if(!n)return;
+ var P={l:CH.l,r:CH.r,t:50,b:30},pw=w-P.l-P.r,ph=h-P.t-P.b,max=0,pk=0,i;
+ for(i=0;i<n;i++)if(pts[i][1]>max){max=pts[i][1];pk=i}
+ $('chno').style.display=max>0?'none':'flex';
+ var top=nice(max);
+ function gx(i){return P.l+(n>1?pw*i/(n-1):pw/2)}
+ function gy(v){return P.t+ph-ph*v/top}
+ x.font='12px Inter,Vazirmatn,sans-serif';x.lineWidth=1;x.strokeStyle=css('--bd');x.fillStyle=css('--mut');
+ x.textAlign='right';x.textBaseline='middle';
+ for(i=0;i<=4;i++){var yy=gy(top*i/4);x.beginPath();x.moveTo(P.l,yy);x.lineTo(w-P.r,yy);x.stroke();x.fillText(fmtB(top*i/4),P.l-8,yy)}
+ x.textAlign='center';x.textBaseline='alphabetic';
+ var k=Math.min(6,n);
+ for(var j=0;j<k;j++){var ix=k>1?Math.round((n-1)*j/(k-1)):0;x.fillText(lab(pts[ix][0]),Math.min(Math.max(gx(ix),P.l+22),w-P.r-22),h-8)}
+ x.beginPath();x.moveTo(gx(0),gy(pts[0][1]));
+ for(i=1;i<n;i++){var mx=(gx(i-1)+gx(i))/2;x.bezierCurveTo(mx,gy(pts[i-1][1]),mx,gy(pts[i][1]),gx(i),gy(pts[i][1]))}
+ x.strokeStyle='#a45cff';x.lineWidth=2.5;x.stroke();
+ x.lineTo(gx(n-1),P.t+ph);x.lineTo(gx(0),P.t+ph);x.closePath();
+ var g=x.createLinearGradient(0,P.t,0,P.t+ph);g.addColorStop(0,'rgba(164,92,255,.45)');g.addColorStop(1,'rgba(109,124,255,0)');x.fillStyle=g;x.fill();
+ var s=CH.hv>=0?CH.hv:pk;
+ if(CH.hv<0&&max<=0)return;
+ var px=gx(s),py=gy(pts[s][1]);
+ x.setLineDash([4,4]);x.strokeStyle=css('--mut');x.lineWidth=1;x.beginPath();x.moveTo(px,py);x.lineTo(px,P.t+ph);x.stroke();x.setLineDash([]);
+ x.beginPath();x.arc(px,py,5,0,Math.PI*2);x.fillStyle=css('--tx');x.fill();x.lineWidth=2.5;x.strokeStyle='#a45cff';x.stroke();
+ var t1=CH.hv>=0?lab(pts[s][0]):I.dash_peak,t2=(CH.hv>=0?'':'≈ ')+fmtB(pts[s][1]);
+ x.font='12px Inter,Vazirmatn,sans-serif';var bw=Math.max(x.measureText(t1).width,x.measureText(t2).width)+24,bh=42;
+ var bx=Math.min(Math.max(px-bw/2,4),w-4-bw),by=Math.max(py-bh-12,4);
+ rr(x,bx,by,bw,bh,10);x.fillStyle=css('--navs');x.fill();x.strokeStyle=css('--bd');x.lineWidth=1;x.stroke();
+ x.fillStyle=css('--mut');x.textAlign='center';x.textBaseline='alphabetic';x.fillText(t1,bx+bw/2,by+17);
+ x.font='bold 13px Inter,Vazirmatn,sans-serif';x.fillStyle=css('--tx');x.fillText(t2,bx+bw/2,by+34);
+}
+function load(r){CH.rng=r;fetch('/api/dash/chart?range='+r).then(function(x){return x.json()}).then(function(d){if(!d.points)return;CH.pts=d.points;CH.hv=-1;draw()}).catch(function(){})}
+document.querySelectorAll('#rng button').forEach(function(b){b.addEventListener('click',function(){
+ document.querySelectorAll('#rng button').forEach(function(o){o.classList.toggle('on',o===b)});load(b.dataset.r)})});
+cv.addEventListener('pointermove',function(e){
+ var n=CH.pts.length;if(n<2)return;var rc=cv.getBoundingClientRect(),pw=rc.width-CH.l-CH.r;
+ var i=Math.round((e.clientX-rc.left-CH.l)/pw*(n-1));CH.hv=Math.max(0,Math.min(n-1,i));draw()});
+cv.addEventListener('pointerleave',function(){CH.hv=-1;draw()});
+window.addEventListener('resize',draw);
+new MutationObserver(draw).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+load('24h');setInterval(function(){load(CH.rng)},60000);
+})();
+(function(){
+var inl=$('lg'),full=$('lgf'),dlg=$('lgd');
+function logs(cb){fetch('/api/dash/logs').then(function(r){return r.json()}).then(function(d){cb(d.lines||[])}).catch(function(){})}
+function inline(){logs(function(l){inl.textContent=l.slice(0,6).join('\\n')||I.dash_logs_none})}
+inline();setInterval(inline,15000);
+$('lgb').addEventListener('click',function(){full.textContent='...';dlg.showModal();logs(function(l){full.textContent=l.join('\\n')||I.dash_logs_none})});
+$('lgc').addEventListener('click',function(){dlg.close()});
+dlg.addEventListener('click',function(e){if(e.target===dlg)dlg.close()});
+})();
+(function(){
+$('rsb').addEventListener('click',function(){
+ if(!confirm(I.dash_restart_confirm))return;
+ var b=this;b.disabled=true;b.querySelector('span').textContent=I.dash_restarting;
+ fetch('/dashboard/restart',{method:'POST'}).catch(function(){});
+ setTimeout(function wait(){fetch('/api/dash',{cache:'no-store'}).then(function(r){if(r.ok){location.reload()}else{throw 0}}).catch(function(){setTimeout(wait,1500)})},3500);
+});
+})();
+(function(){
+var d=$('dnsd');
+$('dnsb').addEventListener('click',function(){d.showModal()});
+$('dnsc').addEventListener('click',function(){d.close()});
+d.addEventListener('click',function(e){if(e.target===d)d.close()});
+})();
+(function(){
+var dlg=$('addd'),inp=$('a_port'),btn=$('a_pbtn'),lab=btn.querySelector('span'),man=$('a_manual'),msg=$('a_pmsg'),auto=inp.value,t=null;
+$('addb').addEventListener('click',function(){dlg.showModal()});
+$('a_c').addEventListener('click',function(){dlg.close()});
+dlg.addEventListener('click',function(e){if(e.target===dlg)dlg.close()});
+btn.onclick=function(){
+ if(man.value==='0'){man.value='1';inp.readOnly=false;inp.focus();inp.select();lab.textContent=I.c_auto;check();}
+ else{man.value='0';inp.readOnly=true;inp.value=auto;lab.textContent=I.c_manual;msg.textContent='';}
+};
+function check(){
+ clearTimeout(t);
+ t=setTimeout(function(){
+  if(man.value!=='1'||!inp.value)return;
+  fetch('/api/port_check?port='+encodeURIComponent(inp.value)+'&proto='+((dlg.querySelector('input[name=proto]:checked')||{}).value||'udp')).then(function(r){return r.json()}).then(function(d){
+   msg.textContent=d.msg;msg.style.color=d.ok?'var(--ok)':'var(--bad)';}).catch(function(){});
+ },300);
+}
+inp.addEventListener('input',check);
+dlg.querySelectorAll('input[name=proto]').forEach(function(r){r.addEventListener('change',check)});
 })();
 </script>
 """
@@ -3856,5 +4499,7 @@ if __name__ == "__main__":
     threading.Thread(target=migrate_management, daemon=True).start()
     threading.Thread(target=reaper, daemon=True).start()
     threading.Thread(target=sampler, daemon=True).start()
+    threading.Thread(target=exit_ip, daemon=True).start()
+    threading.Thread(target=hist_loop, daemon=True).start()
     proxy_start()
     app.run(host=HOST, port=PORT, threaded=True)
