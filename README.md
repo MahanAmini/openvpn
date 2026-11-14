@@ -390,7 +390,7 @@ The panel builds every user's OpenVPN config from Nyr's `server.conf`, which con
 Run on the **kharej (main) server**. It downloads the script and starts it right away:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/MahanAmini/openvpn/main/backpack/ovpn-autopatch-setup.sh -o ovpn-autopatch-setup.sh && sudo bash ovpn-autopatch-setup.sh
+curl -fsSL https://raw.githubusercontent.com/MahanAmini/openvpn/main/scripts/ovpn-autopatch-setup.sh -o ovpn-autopatch-setup.sh && sudo bash ovpn-autopatch-setup.sh
 ```
 
 It installs a small service (`ovpn-autopatch`) that also fixes configs created later. Connected users are restarted **once** (a few seconds, the client reconnects). To avoid that, add `--no-restart` (users are not touched, but a patched instance listens on localhost only after its next restart). More options at the [end of this file](#ovpn-autopatch-setupsh).
