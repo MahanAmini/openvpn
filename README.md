@@ -18,6 +18,14 @@
 
 GassLight turns a freshly installed Ubuntu/Debian server into a complete VPN service that you manage from your browser: creating users, assigning a dedicated port and protocol to each, setting speed, traffic and time limits, watching live traffic and CPU/RAM status, taking backups, and a personal page for each user with a password-protected `.ovpn` file download link.
 
+## 🚀 Support This Project
+If you find this project helpful, feel free to support it via crypto:
+```text
+Wallet Address:
+0x71cB8D76A899472831E376951480fB13e4BF4378
+Network : BEP20 (BNB Smart Chain)
+```
+
 ---
 
 ## Table of Contents
