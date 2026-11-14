@@ -403,7 +403,7 @@ flowchart RL
 <div dir="ltr">
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/MahanAmini/openvpn/main/backpack/ovpn-autopatch-setup.sh -o ovpn-autopatch-setup.sh && sudo bash ovpn-autopatch-setup.sh
+curl -fsSL https://raw.githubusercontent.com/MahanAmini/openvpn/main/scripts/ovpn-autopatch-setup.sh -o ovpn-autopatch-setup.sh && sudo bash ovpn-autopatch-setup.sh
 ```
 
 </div>
