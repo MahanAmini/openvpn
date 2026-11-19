@@ -120,9 +120,9 @@ def user_download(token):
         abort(404)
     if limited(("p", client_ip()), 20):
         return jsonify(error="slow_down"), 429
-    code, headers, body = panel(f"/internal/portal/{token}/ovpn", {"password": request.form.get("password", "")[:128]})
+    code, headers, body = panel(f"/internal/portal/{token}/ovpn", {"password": request.form.get("password", "")[:128], "p": request.form.get("p", "")[:8]})
     if code == 200:
-        return Response(body, 200, mimetype="application/x-openvpn-profile",
+        return Response(body, 200, mimetype=headers.get("Content-Type") or "application/x-openvpn-profile",
                         headers={"Content-Disposition": headers.get("Content-Disposition", 'attachment; filename="client.ovpn"')})
     try:
         out = json.loads(body)
@@ -202,6 +202,65 @@ background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent)
 @keyframes tgpulse{0%{box-shadow:0 10px 28px rgba(42,171,238,.4),0 0 0 0 rgba(42,171,238,.55)}70%,100%{box-shadow:0 10px 28px rgba(42,171,238,.4),0 0 0 16px rgba(42,171,238,0)}}
 @keyframes tgfly{0%,100%{transform:translate(0,0) rotate(0)}50%{transform:translate(3px,-3px) rotate(8deg)}}
 @media (prefers-reduced-motion:reduce){.tgbtn,.tgbtn::after,.tgi{animation:none}}
+/* ---- config picker ---- */
+.fold{display:grid;grid-template-rows:1fr;transition:grid-template-rows .65s cubic-bezier(.7,0,.2,1),opacity .4s,filter .5s,transform .65s,visibility 0s}
+.fold>.in{overflow:hidden;min-height:0;padding:4px;margin:-4px}
+.fold.shut{grid-template-rows:0fr;opacity:0;filter:blur(8px);transform:translateY(-10px) scale(.97);pointer-events:none;visibility:hidden;transition-delay:0s,0s,0s,0s,.65s}
+.fold.pk{grid-template-rows:0fr;opacity:0;visibility:hidden;pointer-events:none;transition-delay:0s,0s,0s,0s,.7s}
+.fold.pk>.in{padding:14px;margin:-14px}
+.fold.pk.open{grid-template-rows:1fr;opacity:1;visibility:visible;pointer-events:auto;transition-delay:0s}
+.btn.okf{background:linear-gradient(135deg,var(--ok),#22d3ee);animation:okpulse .5s ease-out}
+.pkh{display:flex;align-items:center;gap:12px;margin-bottom:16px}
+.pkh h3{margin:0;font-size:15px}.pkh p{margin:2px 0 0;font-size:12.5px;color:var(--mut)}
+.pkic{position:relative;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:#fff;flex:none;background:linear-gradient(135deg,var(--ok),var(--dn))}
+.pkic::before{content:"";position:absolute;inset:0;border-radius:inherit;border:2px solid var(--ok);animation:pkring 2s ease-out infinite}
+.pk.open .pkic{animation:pkunl .9s cubic-bezier(.2,1.5,.4,1) .15s backwards}
+.cfgs{display:flex;flex-wrap:wrap;gap:12px;perspective:700px}
+.cfgb{--cb:#121833;position:relative;flex:1 1 170px;min-width:0;display:flex;align-items:center;gap:12px;padding:15px 16px;border:0;border-radius:16px;
+color:var(--tx);font:inherit;text-align:start;cursor:pointer;isolation:isolate;overflow:hidden;-webkit-tap-highlight-color:transparent;transition:transform .3s cubic-bezier(.2,1.4,.4,1),box-shadow .3s,color .3s}
+@media (prefers-color-scheme:light){.cfgb{--cb:#f4f6ff}}
+.pk.open .cfgb{animation:cfgin .8s cubic-bezier(.2,1.3,.4,1) backwards;animation-delay:calc(.35s + var(--i)*.13s)}
+.cfgb>i{position:absolute;pointer-events:none}
+.cfgb .bd{inset:0;z-index:-3;border-radius:inherit;background:linear-gradient(110deg,var(--p1),var(--p2),var(--dn),var(--p2),var(--p1));background-size:300% 100%;animation:tgflow 4s linear infinite}
+.cfgb .bg{inset:1.5px;z-index:-2;border-radius:14.5px;background:var(--cb);transition:opacity .35s}
+.cfgb .fl{inset:0;z-index:-1;background:linear-gradient(90deg,var(--p1),var(--p2));transform:scaleX(0);transform-origin:0 50%;transition:transform .5s ease,opacity .5s}
+html[dir=rtl] .cfgb .fl{transform-origin:100% 50%}
+.cfgb::after{content:"";position:absolute;top:0;left:-60%;width:40%;height:100%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.3),transparent);
+transform:skewX(-20deg);animation:tgshine 3.4s ease-in-out infinite;animation-delay:calc(var(--i)*.7s + 1.6s)}
+.cfgb:hover{transform:translateY(-3px) scale(1.02);box-shadow:0 14px 32px rgba(109,124,255,.38);color:#fff}
+.cfgb:hover .bg{opacity:.12}
+.cfgb:active{transform:scale(.97)}
+.cfgb:focus-visible{outline:2px solid var(--dn);outline-offset:3px}
+.cfgb .ico{display:grid;place-items:center;width:42px;height:42px;border-radius:12px;flex:none;background:var(--inp);color:var(--dn);transition:.35s cubic-bezier(.2,1.4,.4,1)}
+.cfgb:hover .ico{background:rgba(255,255,255,.2);color:#fff;transform:rotate(-8deg) scale(1.1)}
+.cfgb .tx{flex:1;min-width:0}
+.cfgb .tx b{display:block;font-size:14.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;unicode-bidi:plaintext}
+.cfgb small{display:block;font-size:11.5px;color:var(--mut);transition:color .3s}
+.cfgb:hover small{color:rgba(255,255,255,.85)}
+.cfgb .st{display:grid;place-items:center;flex:none;width:22px;height:22px}
+.cfgb:hover .st svg{animation:pkdl .8s ease-in-out infinite}
+.spn{width:18px;height:18px;border-radius:50%;border:2.5px solid rgba(255,255,255,.35);border-top-color:#fff;animation:pkspin .7s linear infinite}
+.cfgb.busy{pointer-events:none;color:#fff}
+.cfgb.busy .fl{animation:pkfill 1.1s cubic-bezier(.3,.6,.3,1) forwards}
+.cfgb.busy small{color:rgba(255,255,255,.85)}
+.cfgb.done{color:#fff}
+.cfgb.done .fl{transform:scaleX(1);background:linear-gradient(90deg,var(--ok),#22d3ee)}
+.cfgb.done .st svg{animation:pkpop .55s cubic-bezier(.2,1.8,.4,1)}
+.cfgb.done small{color:rgba(255,255,255,.9)}
+.pk.open .cfgb.fail{animation:pkshake .45s}
+.cfgb.fail .bd{background:var(--bad);animation:none}
+.pt{position:absolute;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:hsl(var(--h) 90% 65%);pointer-events:none;z-index:5;animation:pkpt .75s cubic-bezier(.1,.8,.3,1) forwards}
+@keyframes cfgin{from{opacity:0;transform:translateY(26px) scale(.7) rotateX(35deg);filter:blur(6px)}}
+@keyframes pkunl{from{transform:scale(.4) rotate(-35deg);opacity:0}}
+@keyframes pkring{0%{transform:scale(1);opacity:.8}100%{transform:scale(1.7);opacity:0}}
+@keyframes pkspin{to{transform:rotate(360deg)}}
+@keyframes pkfill{to{transform:scaleX(.92)}}
+@keyframes pkpop{from{transform:scale(0) rotate(-40deg)}}
+@keyframes pkshake{20%,60%{transform:translateX(-6px)}40%,80%{transform:translateX(6px)}}
+@keyframes pkdl{0%,100%{transform:translateY(0)}50%{transform:translateY(3px)}}
+@keyframes pkpt{from{transform:translate(0,0) scale(1)}to{transform:translate(var(--dx),var(--dy)) scale(0);opacity:0}}
+@keyframes okpulse{0%{transform:scale(1)}50%{transform:scale(1.04);box-shadow:0 0 0 10px rgba(52,211,153,.25)}100%{transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.cfgb,.cfgb>i,.cfgb::after,.pkic,.pkic::before,.pk.open .cfgb,.pk.open .pkic,.cfgb .st svg{animation:none!important}.fold{transition:none}}
 </style></head><body>
 <div class="wrap">
  <div class="top"><div class="brand"><div class="logo" id="logo"></div><span>Gass<em>Light</em></span></div>
@@ -211,12 +270,20 @@ background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent)
  <div id="info2"></div>
  <div class="card" id="dl" hidden>
   <h2><span data-ic="lock"></span><span data-i="cfg_title">Config file</span></h2>
+  <div class="fold" id="pwform"><div class="in">
   <p class="muted" data-i="cfg_desc">Type the password you received from your provider to unlock the download.</p>
   <label data-i="cfg_pw">Download password</label>
   <div class="row"><div class="grow" style="position:relative"><input id="pw" type="password" autocomplete="off" autocapitalize="none" spellcheck="false"></div>
    <button class="btn ghost" id="eye" type="button" aria-label="show"></button></div>
-  <button class="btn block" id="go" type="button"><span data-ic="download"></span><span data-i="cfg_btn">Unlock &amp; download</span></button>
+  <button class="btn block" id="go" type="button"><span data-ic="unlock"></span><span data-i="cfg_btn">Unlock</span></button>
   <div class="msg" id="msg" role="alert"></div>
+  </div></div>
+  <div class="fold pk" id="picker"><div class="in">
+   <div class="pkh"><div class="pkic"><span data-ic="unlock"></span></div><div><h3 data-i="pk_title"></h3><p data-i="pk_desc"></p></div></div>
+   <div class="cfgs" id="cfgs"></div>
+   <div class="msg" id="pmsg" role="alert"></div>
+   <button class="btn ghost sm" id="pkback" type="button" style="margin-top:14px"><span data-ic="lock"></span><span data-i="pk_back"></span></button>
+  </div></div>
   <details><summary data-i="how">How to connect</summary>
    <ol><li data-i="how1"></li><li data-i="how2"></li><li data-i="how3"></li><li data-i="how4"></li></ol></details>
  </div>
@@ -315,20 +382,82 @@ function load(){
 $('lang').addEventListener('click',function(){lang=lang==='en'?'fa':'en';try{localStorage.setItem('gl_lang',lang)}catch(e){}statics();render();});
 $('eye').addEventListener('click',function(){var p=$('pw');p.type=p.type==='password'?'text':'password';statics();});
 function say(cls,txt){var m=$('msg');m.className='msg '+cls;m.textContent=txt}
+function dl1(pw,p){
+ var fd=new URLSearchParams();fd.set('password',pw);if(p)fd.set('p',p);
+ return fetch('/u/'+TOKEN+'/download',{method:'POST',body:fd,cache:'no-store'}).then(function(r){
+  if(r.ok){var name=((r.headers.get('Content-Disposition')||'').match(/filename="?([^";]+)"?/)||[])[1]||'client.ovpn';
+   if(p){var sfx='_'+p,dot=name.lastIndexOf('.'),base=dot>0?name.slice(0,dot):name,ext=dot>0?name.slice(dot):'.ovpn';
+    if(base.toLowerCase().slice(-sfx.length)!==sfx)name=base+sfx+ext}
+   return r.blob().then(function(bl){var a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=name;document.body.appendChild(a);a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500);return null})}
+  return r.json().catch(function(){return{}}).then(function(j){return{s:r.status,j:j}})})
+}
+T.en.cfg_btn='Unlock';T.fa.cfg_btn='باز کردن قفل';
+T.en.pk_title='Pick a config';T.en.pk_desc='Tap one to download only that file.';T.en.pk_back='Lock again';
+T.fa.pk_title='یکی از کانفیگ‌ها رو انتخاب کن';T.fa.pk_desc='روی هرکدوم بزنی فقط همون فایل دانلود می‌شه.';T.fa.pk_back='قفل کردن دوباره';
+P.check='<polyline points="20 6 9 17 4 12"/>';
+P.unlock='<rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 9.9-1"/>';
+P.file='<path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="9" y1="15" x2="15" y2="15"/>';
+var PW='',CACHE={},CL=[];
+function pm(cls,txt){var m=$('pmsg');m.className='msg '+cls;m.textContent=txt}
+function errOf(e){var j=e.j||{};
+ if(e.s===403)return j.left>0?t('e_bad',{left:j.left}):t('e_bad0');
+ if(e.s===429)return t('e_lock',{m:Math.max(1,Math.ceil((j.wait||60)/60))});
+ if(e.s===404)return t('e_nf');return t('e_down')}
+function getCfg(pw,p){
+ var fd=new URLSearchParams();fd.set('password',pw);if(p)fd.set('p',p);
+ return fetch('/u/'+TOKEN+'/download',{method:'POST',body:fd,cache:'no-store'}).then(function(r){
+  if(r.ok){var name=((r.headers.get('Content-Disposition')||'').match(/filename="?([^";]+)"?/)||[])[1]||'client.ovpn';
+   if(p){var sfx='_'+p,dot=name.lastIndexOf('.'),base=dot>0?name.slice(0,dot):name,ext=dot>0?name.slice(dot):'.ovpn';
+    if(base.toLowerCase().slice(-sfx.length)!==sfx)name=base+sfx+ext}
+   return r.blob().then(function(bl){return{ok:true,bl:bl,name:name}})}
+  return r.json().catch(function(){return{}}).then(function(j){return{ok:false,s:r.status,j:j}})})
+}
+function save(c){var a=document.createElement('a');a.href=URL.createObjectURL(c.bl);a.download=c.name;document.body.appendChild(a);a.click();
+ setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500)}
+function cfgList(){var d=D||{},nm=String(d.name||'config'),pr=(d.proto==='both')?['udp','tcp']:[''];
+ return pr.map(function(p){return{p:p,label:nm+(p?'_'+p:''),proto:String(p||d.proto||'ovpn').toUpperCase()}})}
+function subs(){document.querySelectorAll('.cfgb').forEach(function(b){var c=CL[+b.dataset.k];
+ if(c)b.querySelector('small').textContent=c.proto+' · '+t('port')+' '+((D&&D.port)||'')})}
+function burst(b,e){var r=b.getBoundingClientRect(),x=e&&e.clientX?e.clientX-r.left:r.width/2,y=e&&e.clientY?e.clientY-r.top:r.height/2;
+ for(var i=0;i<14;i++){var s=document.createElement('em'),a=Math.random()*6.283,d=30+Math.random()*55;
+  s.className='pt';s.style.cssText='left:'+x+'px;top:'+y+'px;--dx:'+Math.round(Math.cos(a)*d)+'px;--dy:'+Math.round(Math.sin(a)*d)+'px;--h:'+Math.floor(180+Math.random()*130);
+  b.appendChild(s);setTimeout((function(el){return function(){el.remove()}})(s),800)}}
+function openPicker(){
+ CL=cfgList();var h='';
+ CL.forEach(function(c,i){h+='<button type="button" class="cfgb" data-k="'+i+'" style="--i:'+i+'"><i class="bd"></i><i class="bg"></i><i class="fl"></i>'+
+  '<span class="ico">'+ic('file',22)+'</span><span class="tx"><b>'+esc(c.label)+'</b><small></small></span><span class="st">'+ic('download',18)+'</span></button>'});
+ $('cfgs').innerHTML=h;subs();pm('','');
+ $('go').classList.add('okf');
+ setTimeout(function(){$('pwform').classList.add('shut');setTimeout(function(){$('picker').classList.add('open')},350)},450);
+}
+function lockAgain(){
+ PW='';CACHE={};$('picker').classList.remove('open');
+ setTimeout(function(){$('go').classList.remove('okf');$('pwform').classList.remove('shut');$('cfgs').innerHTML='';say('','');$('msg').className='msg'},500);
+}
+function pick(b,e){
+ var c=CL[+b.dataset.k];if(!c)return;
+ var st=b.querySelector('.st');burst(b,e);pm('','');b.classList.remove('done','fail');b.classList.add('busy');st.innerHTML='<span class="spn"></span>';
+ var job=CACHE[c.p]?Promise.resolve(CACHE[c.p]):getCfg(PW,c.p);
+ Promise.all([job,new Promise(function(r){setTimeout(r,800)})]).then(function(a){var r=a[0];
+  b.classList.remove('busy');
+  if(!r.ok){st.innerHTML=ic('download',18);b.classList.add('fail');pm('err',errOf(r));setTimeout(function(){b.classList.remove('fail')},1200);return}
+  CACHE[c.p]=r;save(r);b.classList.add('done');st.innerHTML=ic('check',20);pm('ok',t('ok'));
+  setTimeout(function(){b.classList.remove('done');st.innerHTML=ic('download',18)},2800);
+ }).catch(function(){b.classList.remove('busy');st.innerHTML=ic('download',18);pm('err',t('e_down'))});
+}
 function go(){
  var pw=$('pw').value;if(!pw){say('err',t('e_empty'));return}
- var b=$('go');b.disabled=true;say('','');$('msg').className='msg';
- var fd=new URLSearchParams();fd.set('password',pw);
- fetch('/u/'+TOKEN+'/download',{method:'POST',body:fd,cache:'no-store'}).then(function(r){
-  if(r.ok){var name=((r.headers.get('Content-Disposition')||'').match(/filename="?([^";]+)"?/)||[])[1]||'client.ovpn';
-   return r.blob().then(function(bl){var a=document.createElement('a');a.href=URL.createObjectURL(bl);a.download=name;document.body.appendChild(a);a.click();
-    setTimeout(function(){URL.revokeObjectURL(a.href);a.remove()},1500);$('pw').value='';say('ok',t('ok'))})}
-  return r.json().catch(function(){return{}}).then(function(j){
-   if(r.status===403)say('err',j.left>0?t('e_bad',{left:j.left}):t('e_bad0'));
-   else if(r.status===429)say('err',t('e_lock',{m:Math.max(1,Math.ceil((j.wait||60)/60))}));
-   else if(r.status===404)say('err',t('e_nf'));else say('err',t('e_down'))})
+ var b=$('go');b.disabled=true;$('msg').className='msg';
+ var first=cfgList()[0];
+ getCfg(pw,first.p).then(function(c){
+  if(!c.ok){say('err',errOf(c));return}
+  PW=pw;CACHE={};CACHE[first.p]=c;$('pw').value='';openPicker();
  }).catch(function(){say('err',t('e_down'))}).then(function(){b.disabled=false});
 }
+$('cfgs').addEventListener('click',function(e){var b=e.target.closest?e.target.closest('.cfgb'):null;if(b&&!b.classList.contains('busy'))pick(b,e)});
+$('pkback').addEventListener('click',lockAgain);
+$('lang').addEventListener('click',subs);
 $('go').addEventListener('click',go);$('pw').addEventListener('keydown',function(e){if(e.key==='Enter')go()});
 statics();load();timer=setInterval(load,3000);
 })();
