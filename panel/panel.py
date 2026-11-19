@@ -168,6 +168,7 @@ TR = {
   "b_import_desc": "Upload a backup made by GassLight. Users whose name already exists are skipped. IDs and ports are kept when free, otherwise the next free ones are used. Download links (.ovpn) are rebuilt with this server's address.",
   "b_file": "Backup file (.zip)",
   "b_restore_pki": "Restore certificates from the backup (needed when the backup comes from a different server / CA)",
+  "b_fresh_certs": "Only import users, usage and remaining time: issue NEW certificates for them on this server (download their config again)",
   "b_restore_hint": "This replaces the server's current certificates. Clients created outside this panel with the old certificates will stop working. A safety copy of the current certificates is saved first.",
   "b_confirm": "This will REPLACE the server's certificates with the ones from the backup. Continue?",
   "b_import_btn": "Import",
@@ -263,6 +264,7 @@ TR = {
   "b_import_desc": "فایل بکاپی که با GassLight ساخته شده رو آپلود کن. کاربرهایی که اسمشون الان هست رد می‌شن. ID و پورت اگه آزاد باشن همون می‌مونن، وگرنه اولین مقدار آزاد داده می‌شه. فایل‌های .ovpn با آدرس همین سرور دوباره ساخته می‌شن.",
   "b_file": "فایل بکاپ (.zip)",
   "b_restore_pki": "بازگردانی گواهی‌ها از بکاپ (وقتی لازمه که بکاپ از سرور / CA دیگه‌ای باشه)",
+  "b_fresh_certs": "فقط کاربرها، مصرف و زمان باقی‌مانده وارد بشن: برای کاربرها توی این سرور گواهی جدید ساخته بشه (کانفیگ‌شون رو دوباره دانلود کن)",
   "b_restore_hint": "این کار گواهی‌های فعلی سرور رو جایگزین می‌کنه. کلاینت‌هایی که بیرون از این پنل با گواهی قبلی ساخته شدن از کار می‌افتن. قبلش یه نسخه‌ی امن از گواهی‌های فعلی ذخیره می‌شه.",
   "b_confirm": "گواهی‌های سرور با گواهی‌های بکاپ جایگزین می‌شن. ادامه بدم؟",
   "b_import_btn": "وارد کردن",
@@ -634,6 +636,8 @@ def host_ready():
 
 
 def port_free(port, proto="udp"):
+    if proto == "both":
+        return port_free(port, "udp") and port_free(port, "tcp")
     kind = socket.SOCK_STREAM if proto == "tcp" else socket.SOCK_DGRAM
     sk = socket.socket(socket.AF_INET, kind)
     try:
@@ -662,6 +666,21 @@ def port_error(st, port, proto="udp"):
     if not port_free(port, proto):
         return tr("p_busy", port=port)
     return None
+
+
+def _protos(proto):
+    return ("udp", "tcp") if proto == "both" else (proto,)
+
+
+def edit_port_error(others, port, same_port, old_proto, proto):
+    """Port check for the edit window. On the same port only the newly added protocol is checked
+    (the user's own instance already holds the old one)."""
+    if same_port:
+        added = [p for p in _protos(proto) if p not in _protos(old_proto)]
+        if not added:
+            return None
+        proto = added[0]
+    return port_error(others, port, proto)
 
 
 def free_id(st):
@@ -719,7 +738,7 @@ def drop_legacy_exit_ip():
 def rule_specs(sub, port, proto="udp"):
     return [
         (["-t", "nat"], "POSTROUTING", nat_spec(sub)),
-        ([], "INPUT", ["-p", proto, "--dport", str(port), "-j", "ACCEPT"]),
+        *[([], "INPUT", ["-p", p, "--dport", str(port), "-j", "ACCEPT"]) for p in _protos(proto)],
         ([], "FORWARD", ["-s", f"{sub}.0/24", "-j", "ACCEPT"]),
         ([], "FORWARD", ["-d", f"{sub}.0/24", "-m", "state", "--state", "RELATED,ESTABLISHED", "-j", "ACCEPT"]),
     ]
@@ -737,12 +756,22 @@ def drop_rules(sub, port, proto="udp"):
             pass
 
 
+def ufw_spec(port, proto):
+    return str(port) if proto == "both" else f"{port}/{proto}"
+
+
 def build_ovpn(name, port, dst, proto="udp"):
     rd = lambda p: open(p).read()
     common = rd(f"{SERVER_DIR}/client-common.txt")
-    common = re.sub(r"^remote (\S+) \d+", rf"remote \1 {port}", common, flags=re.M)
-    common = re.sub(r"^proto .*", lambda m: f"proto {proto}", common, flags=re.M)
-    if proto == "tcp":
+    if proto == "both":
+        common = re.sub(r"^remote (\S+) \d+",
+                        lambda m: f"remote {m.group(1)} {port} udp\nremote {m.group(1)} {port} tcp\nserver-poll-timeout 10",
+                        common, count=1, flags=re.M)
+        common = re.sub(r"^proto .*", "proto udp", common, flags=re.M)
+    else:
+        common = re.sub(r"^remote (\S+) \d+", rf"remote \1 {port}", common, flags=re.M)
+        common = re.sub(r"^proto .*", lambda m: f"proto {proto}", common, flags=re.M)
+    if proto in ("tcp", "both"):
         common = re.sub(r"^explicit-exit-notify.*\n?", "", common, flags=re.M)
     cert = rd(f"{ED}/pki/issued/{name}.crt")
     cert = cert[cert.index("-----BEGIN CERTIFICATE-----"):]
@@ -769,12 +798,19 @@ def create_instance(name, port, sub, proto="udp"):
 def activate_instance(name, port, sub, proto="udp", revoke_on_fail=True, cleanup_on_fail=True):
     conf = open(f"{SERVER_DIR}/server.conf").read()
     conf = re.sub(r"^port .*", lambda m: f"port {port}", conf, flags=re.M)
+    if not re.search(r"^port ", conf, re.M):
+        conf = conf.rstrip("\n") + f"\nport {port}\n"
     conf = re.sub(r"^server .*", lambda m: f"server {sub}.0 255.255.255.0", conf, flags=re.M)
-    if re.search(r"^proto ", conf, re.M):
+    if proto == "both":
+        lm = re.search(r"^local (\S+)", conf, re.M)
+        lip = lm.group(1) if lm else "*"
+        conf = re.sub(r"^(?:port|proto|local) .*\n?", "", conf, flags=re.M)
+        conf = f"local {lip} {port} udp\nlocal {lip} {port} tcp\n" + conf
+    elif re.search(r"^proto ", conf, re.M):
         conf = re.sub(r"^proto .*", lambda m: f"proto {proto}", conf, flags=re.M)
     else:
         conf = conf.rstrip("\n") + f"\nproto {proto}\n"
-    if proto == "tcp":
+    if proto in ("tcp", "both"):
         conf = re.sub(r"^explicit-exit-notify.*\n?", "", conf, flags=re.M)
     conf = re.sub(r"^ifconfig-pool-persist .*", lambda m: f"ifconfig-pool-persist ipp-{name}.txt",
                   conf, flags=re.M)
@@ -785,7 +821,7 @@ def activate_instance(name, port, sub, proto="udp", revoke_on_fail=True, cleanup
         f.write(conf)
 
     apply_rules(sub, port, proto)
-    run(["ufw", "allow", f"{port}/{proto}"])
+    run(["ufw", "allow", ufw_spec(port, proto)])
     run(["systemctl", "enable", "--now", f"openvpn-server@{name}"])
     time.sleep(1.5)
     if not is_active(name):
@@ -808,13 +844,13 @@ def edit_instance(u, new_id, new_port, new_proto):
         sub = new_subnet(new_id, others)
     run(["systemctl", "stop", f"openvpn-server@{name}"])
     drop_rules(old_sub, old_port, old_proto)
-    run(["ufw", "delete", "allow", f"{old_port}/{old_proto}"])
+    run(["ufw", "delete", "allow", ufw_spec(old_port, old_proto)])
     if sub != old_sub and os.path.exists(f"{SERVER_DIR}/ipp-{name}.txt"):
         os.remove(f"{SERVER_DIR}/ipp-{name}.txt")
     ok, err = activate_instance(name, new_port, sub, new_proto, revoke_on_fail=False, cleanup_on_fail=False)
     if not ok:
         drop_rules(sub, new_port, new_proto)
-        run(["ufw", "delete", "allow", f"{new_port}/{new_proto}"])
+        run(["ufw", "delete", "allow", ufw_spec(new_port, new_proto)])
         activate_instance(name, old_port, old_sub, old_proto, revoke_on_fail=False, cleanup_on_fail=False)
         return False, err
     u["id"], u["port"], u["subnet"], u["proto"] = new_id, new_port, sub, new_proto
@@ -835,7 +871,7 @@ def remove_instance(u, revoke=True):
     shutil.rmtree(f"{SERVER_DIR}/ccd-{name}", ignore_errors=True)
     proto = u.get("proto", "udp")
     drop_rules(u["subnet"], u["port"], proto)
-    run(["ufw", "delete", "allow", f"{u['port']}/{proto}"])
+    run(["ufw", "delete", "allow", ufw_spec(u["port"], proto)])
     if revoke:
         run(["./easyrsa", "--batch", "revoke", name], cwd=ED)
         run(["./easyrsa", "gen-crl"], cwd=ED, env=dict(os.environ, EASYRSA_CRL_DAYS="3650"))
@@ -959,6 +995,8 @@ def build_backup_bytes():
             "ca_sha256": hashlib.sha256(ca.encode()).hexdigest() if ca else ""}))
         z.writestr("panel/users.json", json.dumps(st, ensure_ascii=False))
         z.writestr("panel/usage.json", json.dumps({"users": usage}))
+        with HLOCK:                       # the usage-chart history (10-minute bucket -> bytes)
+            z.writestr("panel/usage_hist.json", json.dumps({str(k): v for k, v in HIST.items()}))
         pki = f"{ED}/pki"
         for dp, _dn, fns in os.walk(pki):
             for fn in fns:
@@ -1007,7 +1045,25 @@ def restore_pki_from_zip(z):
     return safety
 
 
-def import_backup_zip(data, restore_pki):
+def new_client_cert(name):
+    """Issue a brand-new certificate for `name` on this server (an older one of the same name is revoked)."""
+    if os.path.exists(f"{ED}/pki/issued/{name}.crt"):
+        run(["./easyrsa", "--batch", "revoke", name], cwd=ED)
+        run(["./easyrsa", "gen-crl"], cwd=ED, env=dict(os.environ, EASYRSA_CRL_DAYS="3650"))
+        try:
+            shutil.copy(f"{ED}/pki/crl.pem", f"{SERVER_DIR}/crl.pem")
+            os.chmod(f"{SERVER_DIR}/crl.pem", 0o644)
+        except OSError:
+            pass
+    for rel in (f"pki/reqs/{name}.req", f"pki/issued/{name}.crt", f"pki/private/{name}.key"):
+        if os.path.exists(f"{ED}/{rel}"):
+            os.remove(f"{ED}/{rel}")
+    r = run(["./easyrsa", "--batch", "build-client-full", name, "nopass"], cwd=ED,
+            env=dict(os.environ, EASYRSA_CERT_EXPIRE="3650"))
+    return r.returncode == 0, ((r.stderr or r.stdout)[-400:] or "easyrsa failed")
+
+
+def import_backup_zip(data, restore_pki, fresh=False):
     try:
         z = zipfile.ZipFile(io.BytesIO(data))
         infos = z.infolist()
@@ -1024,6 +1080,10 @@ def import_backup_zip(data, restore_pki):
         usage = json.loads(z.read("panel/usage.json")).get("users", {})
     except Exception:
         return "err", tr("f_b_bad")
+    try:                                  # usage-chart history; backups made before this change do not have it
+        hist_in = {int(k): int(v) for k, v in json.loads(z.read("panel/usage_hist.json")).items() if int(v) > 0}
+    except Exception:
+        hist_in = {}
 
     with LOCK:
         if not host_ready():
@@ -1035,17 +1095,18 @@ def import_backup_zip(data, restore_pki):
             cur_ca = b""
         bak_ca = z.read("pki/ca.crt").strip() if "pki/ca.crt" in names else b""
         msgs = []
-        if bak_ca and cur_ca != bak_ca:
+        if bak_ca and cur_ca != bak_ca and not fresh:
             if not restore_pki:
                 return "err", tr("f_b_ca")
             msgs.append(tr("f_b_safety", path=restore_pki_from_zip(z)))
+        HREBASE.set()                     # usage totals are about to jump: keep that out of the chart
         st = load_state()
         added = skipped = expired = 0
         failed = []
         for bu in sorted(backup_users, key=lambda x: x.get("id", 0)):
             try:
                 name, proto = str(bu["name"]), bu.get("proto", "udp")
-                if not NAME_RE.match(name) or proto not in ("udp", "tcp"):
+                if not NAME_RE.match(name) or proto not in ("udp", "tcp", "both"):
                     raise ValueError("bad user")
                 if any(u["name"] == name for u in st["users"]):
                     skipped += 1
@@ -1054,6 +1115,10 @@ def import_backup_zip(data, restore_pki):
                 if exp and exp <= time.time():
                     expired += 1
                     continue
+                if fresh:
+                    ok, err = new_client_cert(name)
+                    if not ok:
+                        raise ValueError(err[-120:])
                 for rel in (f"pki/issued/{name}.crt", f"pki/private/{name}.key", f"pki/reqs/{name}.req"):
                     if not os.path.exists(f"{ED}/{rel}") and rel in names:
                         extract_to(z, rel, ED, rel)
@@ -1101,6 +1166,13 @@ def import_backup_zip(data, restore_pki):
             except Exception as e:
                 failed.append(str(bu.get("name", "?"))[:32])
                 print("import error:", bu.get("name"), e, flush=True)
+        if added and hist_in:
+            lo = time.time() - HKEEP
+            with HLOCK:                   # keep the curve of the old server (never lowers an existing bucket)
+                for k, v in hist_in.items():
+                    if k >= lo and HIST.get(k, 0) < v:
+                        HIST[k] = v
+        HREBASE.set()
         msgs.insert(0, tr("f_b_done", added=added, skipped=skipped, expired=expired, failed=len(failed)))
         if failed:
             msgs.append(tr("f_b_failed", names=", ".join(failed)))
@@ -2222,10 +2294,12 @@ def save_support_tg(v):
 OVPN_ADDR_FILE = f"{BASE}/ovpn_addr.json"
 
 
-def ovpn_addr():
+def ovpn_addr(proto="udp"):
     try:
         with open(OVPN_ADDR_FILE) as f:
-            a = str(json.load(f).get("addr", "")).strip()
+            d = json.load(f)
+        # files saved before the UDP/TCP split only have "addr": it keeps applying to both
+        a = str(d.get("addr_tcp", d.get("addr", "")) if proto == "tcp" else d.get("addr", "")).strip()
     except (OSError, ValueError, AttributeError):
         return ""
     return a if _HOST_RE.match(a) else ""
@@ -2242,17 +2316,31 @@ def ovpn_addr_valid(a):
     return True
 
 
-def user_ovpn_addr(u):
-    own = str((u or {}).get("ovpn_addr") or "").strip()
-    return own if own and _HOST_RE.match(own) else ovpn_addr()
+def user_ovpn_addr(u, proto=None):
+    u = u or {}
+    p = proto or u.get("proto", "udp")
+    if p == "tcp":
+        # users saved before the UDP/TCP split only have "ovpn_addr": it keeps applying to TCP too
+        own = u["ovpn_addr_tcp"] if "ovpn_addr_tcp" in u else u.get("ovpn_addr")
+    else:
+        own = u.get("ovpn_addr")
+    own = str(own or "").strip()
+    return own if own and _HOST_RE.match(own) else ovpn_addr(p)
 
 
 def ovpn_bytes(path, u=None):
     with open(path, encoding="utf-8") as f:
         data = f.read()
-    a = user_ovpn_addr(u)
-    if a:
-        data = re.sub(r"^remote (\S+) (\d+)", lambda m: f"remote {a} {m.group(2)}", data, count=1, flags=re.M)
+    if (u or {}).get("proto") == "both":
+        for p in ("udp", "tcp"):
+            a = user_ovpn_addr(u, p)
+            if a:
+                data = re.sub(rf"^remote (\S+) (\d+) {p}\b", lambda m: f"remote {a} {m.group(2)} {p}",
+                              data, count=1, flags=re.M)
+    else:
+        a = user_ovpn_addr(u)
+        if a:
+            data = re.sub(r"^remote (\S+) (\d+)", lambda m: f"remote {a} {m.group(2)}", data, count=1, flags=re.M)
     return data.encode("utf-8")
 
 
@@ -2504,6 +2592,7 @@ def index():
 HIST_FILE = f"{BASE}/usage_hist.json"
 HIST = {}
 HLOCK = threading.Lock()
+HREBASE = threading.Event()   # set when totals jump on purpose (backup restore)
 HB = 600
 HKEEP = 30 * 86400
 HRANGES = {"24h": (86400, 1800), "3d": (3 * 86400, 7200), "7d": (7 * 86400, 21600), "30d": (30 * 86400, 86400)}
@@ -2532,6 +2621,9 @@ def hist_loop():
         time.sleep(30)
         try:
             cur, now = usage_total(), time.time()
+            if HREBASE.is_set():          # a backup was restored: the totals jumped, that is not traffic
+                HREBASE.clear()
+                last = None
             if last is not None and cur > last:
                 b = int(now // HB * HB)
                 with HLOCK:
@@ -2716,7 +2808,7 @@ def backup_import():
     if not f or not f.filename:
         flash(tr("f_b_nofile"), "err")
         return redirect(url_for("backup_page"))
-    kind, payload = import_backup_zip(f.read(), request.form.get("restore_pki") == "1")
+    kind, payload = import_backup_zip(f.read(), request.form.get("restore_pki") == "1", request.form.get("fresh_certs") == "1")
     if kind == "err":
         flash(payload, "err")
         return redirect(url_for("backup_page"))
@@ -2755,7 +2847,7 @@ def create():
             err = tr("f_nohost")
         elif not NAME_RE.match(name):
             err = tr("f_name")
-        elif proto not in ("udp", "tcp"):
+        elif proto not in ("udp", "tcp", "both"):
             err = tr("f_proto")
         elif not 0 <= days <= 3650:
             err = tr("f_days")
@@ -2861,6 +2953,7 @@ def edit_user(name):
     f = request.form
     proto = f.get("proto", "udp")
     oa = (f.get("ovpn_addr") or "").strip()
+    oa_tcp = (f.get("ovpn_addr_tcp") or "").strip()
     try:
         new_id, new_port = int(f.get("id", "")), int(f.get("port", ""))
         speed = round(float(f.get("speed") or 0), 2)
@@ -2878,7 +2971,7 @@ def edit_user(name):
         others = {"users": [x for x in st["users"] if x["name"] != name]}
         old_proto = u.get("proto", "udp")
         err = None
-        if proto not in ("udp", "tcp"):
+        if proto not in ("udp", "tcp", "both"):
             err = tr("f_proto")
         elif new_id < 1 or any(x["id"] == new_id for x in others["users"]):
             err = tr("f_edit_id")
@@ -2888,8 +2981,10 @@ def edit_user(name):
             err = tr("f_edit_lim")
         elif oa and not ovpn_addr_valid(oa):
             err = tr("f_oa_bad")
+        elif oa_tcp and not ovpn_addr_valid(oa_tcp):
+            err = tr("f_oa_bad")
         elif (new_port, proto) != (u["port"], old_proto):
-            err = port_error(others, new_port, proto)
+            err = edit_port_error(others, new_port, new_port == u["port"], old_proto, proto)
         if err:
             flash(err, "err")
             return redirect(url_for("index"))
@@ -2902,6 +2997,7 @@ def edit_user(name):
                 run(["systemctl", "disable", "--now", f"openvpn-server@{name}"])
         u["speed"], u["limit_daily"], u["limit_total"] = speed or None, daily or None, total or None
         u["ovpn_addr"] = oa or None
+        u["ovpn_addr_tcp"] = oa_tcp or None
         px_st, ex_st = feature_state()
         if px_st == "ok":
             u["px"] = f.get("px") == "1"
@@ -2958,7 +3054,7 @@ def adv_pg_proxy():
 @login_required
 def adv_pg_exit():
     session["adv_last"] = "exit"
-    return page(ADV_EX_HTML, active="adv_ex", ex=exit_form(), oa={"addr": ovpn_addr()})
+    return page(ADV_EX_HTML, active="adv_ex", ex=exit_form(), oa={"addr": ovpn_addr("udp"), "addr_tcp": ovpn_addr("tcp")})
 
 
 @app.route("/advanced/account", methods=["POST"])
@@ -3228,15 +3324,16 @@ def api_exit():
 @login_required
 def adv_ovpn_addr():
     a = request.form.get("addr", "").strip()
-    if a and not ovpn_addr_valid(a):
+    a_tcp = request.form.get("addr_tcp", "").strip()
+    if (a and not ovpn_addr_valid(a)) or (a_tcp and not ovpn_addr_valid(a_tcp)):
         flash(tr("f_oa_bad"), "err")
     else:
         tmp = OVPN_ADDR_FILE + ".tmp"
         with open(tmp, "w") as f:
-            json.dump({"addr": a}, f)
+            json.dump({"addr": a, "addr_tcp": a_tcp}, f)
         os.chmod(tmp, 0o600)
         os.replace(tmp, OVPN_ADDR_FILE)
-        flash(tr("f_oa_saved") if a else tr("f_oa_cleared"), "ok")
+        flash(tr("f_oa_saved") if (a or a_tcp) else tr("f_oa_cleared"), "ok")
     return redirect(url_for("advanced_page"))
 
 
@@ -3399,6 +3496,19 @@ def download(name):
     u = next((u for u in load_state()["users"] if u["name"] == name), None)
     if not u:
         abort(404)
+    if u.get("proto") == "both":
+        import tempfile
+        buf = io.BytesIO()
+        try:
+            with tempfile.TemporaryDirectory() as td, zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as z:
+                for p in ("udp", "tcp"):
+                    dst = f"{td}/{name}-{p}.ovpn"
+                    build_ovpn(name, u["port"], dst, p)
+                    z.writestr(f"{name}-{p}.ovpn", ovpn_bytes(dst, {**u, "proto": p}))
+        except Exception:
+            abort(404)
+        buf.seek(0)
+        return send_file(buf, mimetype="application/zip", as_attachment=True, download_name=f"{name}.zip")
     path = f"{OVPN_DIR}/{name}.ovpn"
     if not os.path.exists(path):
         try:
@@ -3416,7 +3526,7 @@ def api_port_check():
     except ValueError:
         return jsonify(ok=False, msg=tr("p_bad"))
     proto = request.args.get("proto", "udp")
-    err = port_error(load_state(), port, proto if proto in ("udp", "tcp") else "udp")
+    err = port_error(load_state(), port, proto if proto in ("udp", "tcp", "both") else "udp")
     return jsonify(ok=err is None, msg=err or tr("p_free"))
 
 
@@ -3709,7 +3819,7 @@ font-size:12.5px;line-height:1.8;direction:ltr;text-align:left;white-space:pre-w
 .dlg.wide{max-width:900px}
 .dlg.wide .logbox{max-height:62vh}
 @media(max-width:980px){.dtop{grid-template-columns:repeat(2,1fr)}.dmid{grid-template-columns:1fr}}
-@media(max-width:480px){.dtop{grid-template-columns:1fr}.chwrap{height:240px}}
+@media(max-width:480px){.dtop{grid-template-columns:repeat(2,1fr);gap:10px}.sc{padding:14px}.sc b{font-size:22px}.sc b.mono{font-size:14px}.sc .lb{font-size:12px}.chwrap{height:240px}}
 @media(max-width:1180px){.speeds{grid-template-columns:1fr 1fr}}
 @media(max-width:980px){
  .topbar{display:flex;position:sticky;top:0;z-index:40;height:62px;align-items:center;justify-content:space-between;
@@ -3831,7 +3941,8 @@ DASH_HTML = """
 <div class="f-name"><label>{{ t('c_name') }}</label><input name="name" placeholder="ali" pattern="[A-Za-z0-9_-]{1,32}" autocapitalize="none" autocomplete="off" required></div>
 <div class="f-proto"><label>{{ t('c_proto') }}</label><div class="seg">
 <label><input type="radio" name="proto" value="udp" checked><span>UDP</span></label>
-<label><input type="radio" name="proto" value="tcp"><span>TCP</span></label></div></div>
+<label><input type="radio" name="proto" value="tcp"><span>TCP</span></label>
+<label><input type="radio" name="proto" value="both"><span>Both</span></label></div></div>
 <div class="f-port"><label>{{ t('c_port') }}</label>
 <div class="pwrap"><input id="port" name="port" type="number" inputmode="numeric" min="1" max="65535" value="{{ port }}" readonly>
 <button type="button" class="btn ghost sm" id="pbtn">{{ ic('edit',15) }} <span>{{ t('c_manual') }}</span></button></div>
@@ -3885,7 +3996,7 @@ onsubmit='return confirm({{ t("confirm_regen_link", name=u.name)|tojson }})'><bu
 <a class="btn sm" href="{{ url_for('download', name=u.name) }}">{{ ic('download',15) }} {{ t('dl_ovpn') }}</a>
 <button type="button" class="btn ghost sm" data-edit data-name="{{ u.name }}" data-id="{{ u.id }}" data-port="{{ u.port }}"
  data-proto="{{ u.proto }}" data-px="{{ 1 if u.px else 0 }}" data-ex="{{ 1 if u.ex else 0 }}" data-speed="{{ '%g'|format(u.speed) if u.speed else 0 }}"
- data-daily="{{ '%g'|format(u.limit_daily) if u.limit_daily else 0 }}" data-total="{{ '%g'|format(u.limit_total) if u.limit_total else 0 }}" data-oa="{{ u.ovpn_addr or '' }}">{{ ic('edit',15) }} {{ t('edit_btn') }}</button>
+ data-daily="{{ '%g'|format(u.limit_daily) if u.limit_daily else 0 }}" data-total="{{ '%g'|format(u.limit_total) if u.limit_total else 0 }}" data-oa="{{ u.ovpn_addr or '' }}" data-oat="{{ (u.ovpn_addr_tcp if 'ovpn_addr_tcp' in u else u.ovpn_addr) or '' }}">{{ ic('edit',15) }} {{ t('edit_btn') }}</button>
 <form class="ext" method="post" action="{{ url_for('extend', name=u.name) }}">
 <input name="days" type="number" inputmode="numeric" min="1" placeholder="{{ t('days_ph') }}" required><button class="btn ghost sm">{{ ic('plus',15) }} {{ t('extend') }}</button></form>
 {% if u.left_txt %}<form class="mini" method="post" action="{{ url_for('unlimit', name=u.name) }}">
@@ -3903,11 +4014,13 @@ onsubmit='return confirm({{ t("confirm_del", name=u.name)|tojson }})'><button cl
 <div><label>{{ t('edit_port') }}</label><input name="port" type="number" min="1" max="65535" required></div>
 <div class="span2"><label>{{ t('edit_proto') }}</label><div class="seg">
 <label><input type="radio" name="proto" value="udp" id="e_udp"><span>UDP</span></label>
-<label><input type="radio" name="proto" value="tcp" id="e_tcp"><span>TCP</span></label></div></div>
+<label><input type="radio" name="proto" value="tcp" id="e_tcp"><span>TCP</span></label>
+<label><input type="radio" name="proto" value="both" id="e_both"><span>Both</span></label></div></div>
 <div class="span2"><label>{{ t('edit_speed') }}</label><input name="speed" type="number" min="0" max="10000" step="any"></div>
 <div><label>{{ t('edit_daily') }}</label><input name="daily" type="number" min="0" max="1000000" step="any"></div>
 <div><label>{{ t('edit_total') }}</label><input name="total" type="number" min="0" max="1000000" step="any"></div>
-<div class="span2"><label>{{ t('oa_title') }}</label><input name="ovpn_addr" placeholder="{{ t('oa_ph') }}" autocomplete="off" spellcheck="false" style="direction:ltr">
+<div class="span2"><label>{{ t('oa_title') }} (UDP)</label><input name="ovpn_addr" placeholder="{{ t('oa_ph') }}" autocomplete="off" spellcheck="false" style="direction:ltr"></div>
+<div class="span2"><label>{{ t('oa_title') }} (TCP)</label><input name="ovpn_addr_tcp" placeholder="{{ t('oa_ph') }}" autocomplete="off" spellcheck="false" style="direction:ltr">
 <p class="hint" style="padding-inline-start:0;margin:6px 0 0">{{ t('eo_hint') }}</p></div>
 </div>
 <div class="rt"><div class="rt-h">{{ ic('globe',16) }} {{ t('ux_title') }}</div>
@@ -3948,7 +4061,7 @@ var PXS={{ px_state|tojson }},EXS={{ ex_state|tojson }};
 var dlg=document.getElementById('ed'),form=document.getElementById('edf'),els=form.elements,rst=document.getElementById('edr'),cur='';
 document.querySelectorAll('[data-edit]').forEach(function(b){b.addEventListener('click',function(){
  var d=b.dataset;cur=d.name;form.action='/edit/'+d.name;document.getElementById('edn').textContent=d.name;
- els['id'].value=d.id;els['port'].value=d.port;els['speed'].value=d.speed;els['daily'].value=d.daily;els['total'].value=d.total;els['ovpn_addr'].value=d.oa||'';
+ els['id'].value=d.id;els['port'].value=d.port;els['speed'].value=d.speed;els['daily'].value=d.daily;els['total'].value=d.total;els['ovpn_addr'].value=d.oa||'';els['ovpn_addr_tcp'].value=d.oat||'';
  document.getElementById('e_'+d.proto).checked=true;rst.formAction='/reset/'+d.name;
  document.getElementById('e_px').checked=PXS==='all'||d.px==='1';document.getElementById('e_ex').checked=EXS==='all'||d.ex==='1';
  dlg.showModal();});});
@@ -4029,7 +4142,8 @@ DASHBOARD_HTML = """
 <div><label>{{ t('c_name') }}</label><input name="name" placeholder="ali" pattern="[A-Za-z0-9_-]{1,32}" autocapitalize="none" autocomplete="off" required></div>
 <div class="span2"><label>{{ t('c_proto') }}</label><div class="seg">
 <label><input type="radio" name="proto" value="udp" checked><span>UDP</span></label>
-<label><input type="radio" name="proto" value="tcp"><span>TCP</span></label></div></div>
+<label><input type="radio" name="proto" value="tcp"><span>TCP</span></label>
+<label><input type="radio" name="proto" value="both"><span>Both</span></label></div></div>
 <div class="span2"><label>{{ t('c_port') }}</label>
 <div class="pwrap"><input id="a_port" name="port" type="number" inputmode="numeric" min="1" max="65535" value="{{ port }}" readonly>
 <button type="button" class="btn ghost sm" id="a_pbtn">{{ ic('edit',15) }} <span>{{ t('c_manual') }}</span></button></div>
@@ -4305,6 +4419,7 @@ BACKUP_HTML = """
 <label>{{ t('b_file') }}</label>
 <input type="file" name="file" accept=".zip,application/zip" required>
 <label class="chk"><input type="checkbox" name="restore_pki" value="1" id="rp"><span>{{ t('b_restore_pki') }}</span></label>
+<label class="chk"><input type="checkbox" name="fresh_certs" value="1" id="fc"><span>{{ t('b_fresh_certs') }}</span></label>
 <p class="hint">{{ t('b_restore_hint') }}</p>
 <button class="btn block">{{ ic('upload',16) }} {{ t('b_import_btn') }}</button></form></div>
 </div>
@@ -4484,7 +4599,8 @@ setTimeout(poll,1500);
 <div class="card" style="margin-top:18px"><h3>{{ ic('link') }} {{ t('oa_title') }}</h3>
 <p class="muted">{{ t('oa_desc') }}</p>
 <form method="post" action="{{ url_for('adv_ovpn_addr') }}" class="stack">
-<div><label>{{ t('oa_label') }}</label><input name="addr" value="{{ oa.addr }}" placeholder="{{ t('oa_ph') }}" autocomplete="off" spellcheck="false" style="direction:ltr"></div>
+<div><label>{{ t('oa_label') }} (UDP)</label><input name="addr" value="{{ oa.addr }}" placeholder="{{ t('oa_ph') }}" autocomplete="off" spellcheck="false" style="direction:ltr"></div>
+<div><label>{{ t('oa_label') }} (TCP)</label><input name="addr_tcp" value="{{ oa.addr_tcp }}" placeholder="{{ t('oa_ph') }}" autocomplete="off" spellcheck="false" style="direction:ltr"></div>
 <p class="hint" style="padding-inline-start:0">{{ t('oa_hint') }}</p>
 <div><button class="btn">{{ ic('check',16) }} {{ t('px_save') }}</button></div></form>
 </div>
